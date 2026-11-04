@@ -43,7 +43,7 @@
         </div>
     </div>
 
-    <!-- Toast-Nachricht (Feedback in der Bildschirmmitte) -->
+    <!-- Toast-Nachricht -->
     <div id="toast-message"></div>
 
     <!-- Interaktions-Prompt [Drücke E] -->
@@ -82,10 +82,10 @@
 
             <!-- Erscheint, sobald das Bild vollständig zusammengesetzt ist -->
             <div id="flower-reveal-banner" class="reveal-banner hidden">
-                <h3 id="flower-reveal-title">✨ Das erste Bild ist vollendet! ✨</h3>
+                <h3 id="flower-reveal-title">✨ Das Blumen-Siegel ist gelöst! ✨</h3>
                 <p id="flower-reveal-caption"></p>
-                <button id="flower-next-world-btn" class="btn-gold" onclick="game.puzzles.proceedFromFlowerPuzzle()">
-                    Weiter zur 2. Etappe (Dämmerungs-Schlucht) ➔
+                <button id="flower-next-world-btn" class="btn-gold" onclick="game.puzzles.revealHologramInWorld()">
+                    ✨ Hologramm in der Welt betrachten ✨
                 </button>
             </div>
 
@@ -95,7 +95,7 @@
         </div>
     </div>
 
-    <!-- MODAL 3: Challenge 3 – Altar der Erinnerungen (Kombinationsschloss) -->
+    <!-- MODAL 3: Challenge 3 – Altar der Erinnerungen -->
     <div id="quiz-modal" class="modal-backdrop">
         <div class="modal-card quiz-card">
             <h2>Der Altar der Erinnerungen</h2>
