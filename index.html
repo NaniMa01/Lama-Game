@@ -1,0 +1,3646 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Die Reise des kleinen Lamas – Ein Jubiläums-Abenteuer</title>
+    <!-- Tailwind CSS für elegantes UI-Design -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js r128 über stabiles CDN (Direkte sRGB + ACESFilmic PBR-Pipeline ohne PostProcessing-Farbverlust) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Google Fonts für edle Typografie -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --gold-glow: rgba(251, 191, 36, 0.55);
+        }
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0f0a1c;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: #fff;
+        }
+        .font-serif-title {
+            font-family: 'Cinzel', serif;
+        }
+        #game-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            display: block;
+        }
+        /* Glas-Effekt für Overlays */
+        .glass-panel {
+            background: rgba(20, 14, 36, 0.78);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(251, 191, 36, 0.12);
+        }
+        .glass-hud {
+            background: rgba(15, 10, 28, 0.68);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+        }
+        /* Teleportations-Blende */
+        #teleport-fade {
+            position: fixed;
+            inset: 0;
+            z-index: 60;
+            pointer-events: none;
+            background: radial-gradient(circle, #fffbeb 0%, #fde68a 45%, #f59e0b 100%);
+            opacity: 0;
+            transition: opacity 0.85s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        /* Sanftes Pulsieren für Interaktions-Prompt */
+        @keyframes floatPulse {
+            0%, 100% { transform: translate(-50%, 0px) scale(1); }
+            50% { transform: translate(-50%, -5px) scale(1.03); }
+        }
+        .interact-bounce {
+            animation: floatPulse 2s infinite ease-in-out;
+        }
+        /* Goldener Schimmer-Button */
+        .btn-gold {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%);
+            box-shadow: 0 8px 25px rgba(245, 158, 11, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+            transition: all 0.25s ease;
+        }
+        .btn-gold:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 12px 32px rgba(245, 158, 11, 0.65), inset 0 1px 2px rgba(255, 255, 255, 0.6);
+        }
+        .btn-gold:active {
+            transform: translateY(1px) scale(0.99);
+        }
+        /* Custom Scrollbar für Modals */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 10, 28, 0.4);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(251, 191, 36, 0.4);
+            border-radius: 9999px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 3D Three.js Canvas -->
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Teleportations-Übergangs-Overlay -->
+    <div id="teleport-fade"></div>
+
+    <!-- ==========================================
+         START-BILDSCHIRM OVERLAY
+    =========================================== -->
+    <div id="start-screen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gradient-to-b from-indigo-950/85 via-purple-950/80 to-amber-950/85 backdrop-blur-md transition-opacity duration-700">
+        <div class="glass-panel max-w-xl w-full rounded-3xl p-8 md:p-10 text-center relative overflow-hidden">
+            <div class="absolute -top-24 -left-24 w-48 h-48 bg-amber-400/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-rose-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-200 text-xs font-semibold tracking-widest uppercase mb-5">
+                <span id="ui-welcome-badge">✨ Ein interaktives Geschenk zum 1. Jubiläum ✨</span>
+            </div>
+
+            <h1 id="ui-welcome-title" class="font-serif-title text-3xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-rose-200 mb-4 leading-tight">
+                Die Reise des kleinen Lamas
+            </h1>
+
+            <p id="ui-welcome-text" class="text-amber-100/85 text-sm md:text-base leading-relaxed mb-6">
+                Begleite unser kleines Lama durch drei magische Welten in der Abendsonne. Löse die drei Rätsel der Harmonie, der Schritte und der Erinnerungen, um am Sternenhimmel-Gipfel den geheimen Jubiläumsschatz zu bergen.
+            </p>
+
+            <!-- Steuerungs-Übersicht -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 bg-black/35 border border-white/10 rounded-2xl p-4 mb-7 text-left">
+                <div class="flex flex-col items-center text-center p-2 rounded-xl bg-white/5">
+                    <span class="px-2.5 py-1 rounded-lg bg-amber-500/20 border border-amber-400/40 text-amber-200 font-bold text-xs mb-1.5">W A S D / Pfeile</span>
+                    <span class="text-xs text-slate-300">Lama bewegen</span>
+                </div>
+                <div class="flex flex-col items-center text-center p-2 rounded-xl bg-white/5">
+                    <span class="px-2.5 py-1 rounded-lg bg-amber-500/20 border border-amber-400/40 text-amber-200 font-bold text-xs mb-1.5">MAUS / Q & R</span>
+                    <span class="text-xs text-slate-300">Kamera drehen</span>
+                </div>
+                <div class="flex flex-col items-center text-center p-2 rounded-xl bg-white/5">
+                    <span class="px-2.5 py-1 rounded-lg bg-amber-500/20 border border-amber-400/40 text-amber-200 font-bold text-xs mb-1.5">LEERTASTE</span>
+                    <span class="text-xs text-slate-300">Freudensprung</span>
+                </div>
+                <div class="flex flex-col items-center text-center p-2 rounded-xl bg-white/5">
+                    <span class="px-2.5 py-1 rounded-lg bg-amber-500/20 border border-amber-400/40 text-amber-200 font-bold text-xs mb-1.5">TASTE [E]</span>
+                    <span class="text-xs text-slate-300">Interagieren</span>
+                </div>
+            </div>
+
+            <button id="btn-start-game" class="btn-gold w-full py-4 rounded-2xl font-bold text-lg text-amber-950 tracking-wide cursor-pointer">
+                🦙 Abenteuer im Abendrot starten
+            </button>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         HUD (HEADS-UP DISPLAY IM SPIEL)
+    =========================================== -->
+    <div id="hud-layer" class="fixed inset-0 z-20 pointer-events-none hidden">
+        <!-- Oben Links: Welt-Anzeige & Aktuelle Aufgabe -->
+        <div class="absolute top-4 left-4 right-4 md:right-auto md:max-w-md flex flex-col gap-2 pointer-events-auto">
+            <div class="glass-hud rounded-2xl px-5 py-3.5 shadow-lg">
+                <div class="flex items-center justify-between gap-4 mb-1">
+                    <span id="hud-world-badge" class="text-[11px] font-bold uppercase tracking-widest text-amber-300 bg-amber-500/20 px-2.5 py-0.5 rounded-full border border-amber-400/30">
+                        Etappe 1 / 3
+                    </span>
+                    <div class="flex items-center gap-1.5" id="hud-progress-dots">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24]"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-white/25"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-white/25"></span>
+                    </div>
+                </div>
+                <h2 id="hud-world-title" class="font-serif-title text-lg md:text-xl font-bold text-amber-100">
+                    Die schwebende Wiesen-Oase
+                </h2>
+                <p id="hud-objective" class="text-xs md:text-sm text-slate-200/90 mt-1 leading-snug">
+                    Lies die 3 Steintafeln und richte die 3 Runen-Sockel in der richtigen Symbolfolge aus.
+                </p>
+                <!-- Live-Statusleiste für das aktuelle Rätsel -->
+                <div id="hud-puzzle-status" class="mt-2.5 pt-2 border-t border-white/10 text-xs text-amber-200/90 font-medium flex flex-wrap items-center gap-2">
+                </div>
+            </div>
+        </div>
+
+        <!-- Oben Rechts: Audio, Notizbuch & Schnellwahl zum Testen -->
+        <div class="absolute top-4 right-4 hidden md:flex items-center gap-2 pointer-events-auto">
+            <button id="btn-toggle-clues" class="glass-hud hover:bg-white/15 active:scale-95 transition px-3.5 py-2.5 rounded-xl text-xs font-semibold text-amber-200 flex items-center gap-1.5 cursor-pointer" title="Hinweise & GitHub-Dev-Menü (Taste H)">
+                <span>📜</span> <span>Hinweise & Dev (H)</span>
+            </button>
+            <button id="btn-toggle-audio" class="glass-hud hover:bg-white/15 active:scale-95 transition px-3.5 py-2.5 rounded-xl text-xs font-semibold text-amber-200 flex items-center gap-1.5 cursor-pointer" title="Ton an/aus">
+                <span id="audio-icon">🔊</span> <span id="audio-label">Ton An</span>
+            </button>
+            <!-- Welt-Direktwahl (ideal zum Testen & Vorführen) -->
+            <div class="glass-hud rounded-xl p-1 flex items-center gap-1 text-xs">
+                <span class="px-2 text-slate-400 hidden lg:inline">Dev-Jump:</span>
+                <button data-goto-world="1" class="world-jump-btn px-2.5 py-1.5 rounded-lg bg-amber-500/30 text-amber-200 font-bold hover:bg-amber-500/50 transition cursor-pointer" title="Zu Welt 1 springen">W1</button>
+                <button data-goto-world="2" class="world-jump-btn px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-slate-300 transition cursor-pointer" title="Zu Welt 2 springen">W2</button>
+                <button data-goto-world="3" class="world-jump-btn px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-slate-300 transition cursor-pointer" title="Zu Welt 3 springen">W3</button>
+                <button id="btn-spawn-chest-debug" class="px-2.5 py-1.5 rounded-lg hover:bg-amber-500/30 text-amber-300 transition cursor-pointer" title="Direkt zur Schatztruhe in Welt 3">🎁</button>
+            </div>
+        </div>
+
+        <!-- Ausklappbares Hinweis-Notizbuch & GitHub Dev-Panel (Taste H) -->
+        <div id="clue-notebook" class="absolute top-20 right-4 w-80 max-w-[calc(100vw-2rem)] glass-panel rounded-2xl p-4 pointer-events-auto hidden transition-all">
+            <div class="flex items-center justify-between border-b border-white/15 pb-2 mb-2.5">
+                <h3 class="font-serif-title text-sm font-bold text-amber-300 flex items-center gap-1.5">
+                    <span>📜</span> <span>Rätsel-Hinweise & Dev-Tools</span>
+                </h3>
+                <button id="btn-close-notebook" class="text-slate-400 hover:text-white text-xs px-1.5 py-0.5 rounded cursor-pointer">✕</button>
+            </div>
+            <div id="clue-notebook-content" class="text-xs text-slate-200 space-y-2 leading-relaxed mb-3">
+            </div>
+            <div class="pt-2.5 border-t border-white/15 flex flex-col gap-1.5">
+                <span class="text-[10px] uppercase tracking-wider text-amber-300/80 font-bold">GitHub Schnelltest-Aktionen:</span>
+                <div class="grid grid-cols-2 gap-1.5">
+                    <button id="btn-dev-solve-current" class="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/35 border border-emerald-400/30 text-emerald-200 text-[11px] font-semibold transition cursor-pointer">
+                        ✓ Aktuelles Rätsel lösen
+                    </button>
+                    <button id="btn-dev-open-video" class="px-2.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/35 border border-amber-400/30 text-amber-200 text-[11px] font-semibold transition cursor-pointer">
+                        🎬 Video-Modal testen
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mitte/Unten: Toast-Banner für Inschriften & Feedback -->
+        <div id="toast-banner" class="absolute top-1/4 left-1/2 -translate-x-1/2 max-w-lg w-[92%] glass-panel rounded-2xl px-6 py-4 text-center pointer-events-none opacity-0 transition-all duration-300 transform -translate-y-3">
+            <div id="toast-title" class="font-serif-title text-sm font-bold text-amber-300 uppercase tracking-wider mb-1"></div>
+            <div id="toast-text" class="text-sm md:text-base text-white leading-relaxed"></div>
+        </div>
+
+        <!-- Unten Mitte: Interaktions-Prompt [E] -->
+        <div id="interaction-prompt" class="absolute bottom-20 md:bottom-10 left-1/2 interact-bounce pointer-events-auto hidden">
+            <button id="btn-interact-click" class="glass-panel px-6 py-3 rounded-full flex items-center gap-3 border-amber-400/60 shadow-[0_0_25px_rgba(251,191,36,0.35)] cursor-pointer hover:bg-amber-500/20 transition">
+                <span class="w-7 h-7 rounded-lg bg-amber-400 text-amber-950 font-extrabold text-sm flex items-center justify-center shadow">E</span>
+                <span id="interaction-label" class="text-sm md:text-base font-semibold text-amber-100">Interagieren</span>
+            </button>
+        </div>
+
+        <!-- Unten Links: Kompakte Steuerungshilfe -->
+        <div class="absolute bottom-4 left-4 hidden md:flex items-center gap-3 glass-hud px-4 py-2 rounded-xl text-xs text-slate-300 pointer-events-auto">
+            <span><strong class="text-amber-300">WASD / Pfeile</strong> Laufen</span>
+            <span>•</span>
+            <span><strong class="text-amber-300">Maus ziehen / Q,R</strong> Kamera</span>
+            <span>•</span>
+            <span><strong class="text-amber-300">Leertaste</strong> Hüpfen</span>
+            <span>•</span>
+            <span><strong class="text-amber-300">E</strong> Interagieren</span>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         RÄTSEL 3 TERMINAL MODAL (ALTAR DER ERINNERUNGEN)
+    =========================================== -->
+    <div id="altar-modal" class="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md hidden">
+        <div class="glass-panel max-w-xl w-full rounded-3xl p-6 md:p-8 relative max-h-[92vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-amber-400/25 pb-4 mb-5">
+                <div>
+                    <span class="text-[11px] uppercase tracking-widest text-amber-300 font-bold">Das dritte Siegel</span>
+                    <h2 class="font-serif-title text-2xl font-bold text-white">Der Altar der Erinnerungen</h2>
+                </div>
+                <button id="btn-close-altar" class="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-200 cursor-pointer" title="Schließen (ESC)">
+                    ✕
+                </button>
+            </div>
+
+            <p class="text-xs md:text-sm text-amber-100/85 mb-5 leading-relaxed">
+                Drei kryptische Chiffren bewachen den Schatz des Sternenhimmel-Gipfels. Entschlüssele alle drei Siegel, um die goldene Jubiläumstruhe zu manifestieren.
+            </p>
+
+            <!-- Die 3 Rätsel-Schlösser werden dynamisch aus GAME_CONFIG gerendert -->
+            <div id="altar-questions-container" class="space-y-4 mb-6"></div>
+
+            <div id="altar-feedback" class="text-center text-sm font-semibold mb-4 min-h-[1.5rem]"></div>
+
+            <div class="flex items-center justify-end gap-3">
+                <button id="btn-Cancel-altar" class="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs md:text-sm font-semibold text-slate-200 transition cursor-pointer">
+                    Zurück zur Welt
+                </button>
+                <button id="btn-submit-altar" class="btn-gold px-6 py-3 rounded-xl text-sm font-bold text-amber-950 cursor-pointer">
+                    ✨ Siegel prüfen & Schatz beschwören
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         SCHATZTRUHE / VIDEO FINALE MODAL
+    =========================================== -->
+    <div id="video-modal" class="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-black/88 backdrop-blur-xl hidden">
+        <div class="glass-panel max-w-4xl w-full rounded-3xl p-5 md:p-8 relative border-amber-400/50 shadow-[0_0_80px_rgba(251,191,36,0.3)] max-h-[95vh] overflow-y-auto">
+            <!-- Schließen-Button oben rechts -->
+            <button id="btn-close-video" class="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/15 hover:bg-rose-500/80 text-white font-bold flex items-center justify-center transition cursor-pointer" title="Video schließen">
+                ✕
+            </button>
+
+            <div class="text-center mb-5">
+                <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-200 text-xs font-semibold uppercase tracking-widest mb-2">
+                    <span>💖 Du hast alle drei Welten gemeistert 💖</span>
+                </div>
+                <h2 id="video-modal-title" class="font-serif-title text-2xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-100 to-rose-300">
+                    Alles Liebe zu unserem 1. Jubiläum!
+                </h2>
+                <p id="video-modal-subtitle" class="text-xs md:text-sm text-amber-100/80 mt-1">
+                    Der Schatz hat sich geöffnet – lehn dich zurück und genieße deine Überraschung.
+                </p>
+            </div>
+
+            <!-- Video Player Container -->
+            <div class="relative w-full aspect-video rounded-2xl overflow-hidden bg-black/90 border border-amber-400/40 shadow-2xl flex items-center justify-center">
+                <video id="anniversary-video" class="w-full h-full object-contain" controls playsinline preload="metadata">
+                    <source src="./video.mp4" type="video/mp4">
+                    Dein Browser unterstützt leider kein HTML5-Video.
+                </video>
+
+                <!-- Elegantes Fallback-Overlay, falls ./video.mp4 lokal noch nicht im Ordner liegt -->
+                <div id="video-fallback-overlay" class="absolute inset-0 bg-gradient-to-br from-indigo-950/95 via-purple-950/95 to-rose-950/95 flex flex-col items-center justify-center p-6 text-center hidden">
+                    <div class="w-16 h-16 rounded-full bg-amber-400/20 border border-amber-400/50 flex items-center justify-center text-3xl mb-3 shadow-[0_0_30px_rgba(251,191,36,0.4)]">
+                        🎬
+                    </div>
+                    <h3 class="font-serif-title text-xl md:text-2xl font-bold text-amber-200 mb-2">
+                        Platzhalter für dein Jubiläumsvideo (<code>video.mp4</code>)
+                    </h3>
+                    <p class="text-xs md:text-sm text-slate-200 max-w-lg leading-relaxed mb-5">
+                        Sobald du deine fertige Videodatei unter dem Namen <strong class="text-amber-300">video.mp4</strong> in denselben Ordner wie diese <code class="text-amber-200">index.html</code> legst, startet dein Video an dieser Stelle automatisch!
+                    </p>
+                    <div class="flex flex-wrap items-center justify-center gap-3">
+                        <label class="btn-gold px-5 py-2.5 rounded-xl text-xs md:text-sm font-bold text-amber-950 cursor-pointer inline-flex items-center gap-2">
+                            <span>📂</span>
+                            <span>Videodatei jetzt zum Testen auswählen</span>
+                            <input type="file" id="video-file-picker" accept="video/*" class="hidden">
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * ============================================================================
+         * 1. ZENTRALE KONFIGURATION (`PERSONAL_CONFIG`) – FÜR GITHUB-ANPASSUNGEN
+         * ============================================================================
+         * Hier kannst du alle Texte, Zahlenfolgen, Symbole und persönlichen Fragen
+         * für euer 1. Jubiläum anpassen, ohne den 3D-Engine-Code darunter zu ändern.
+         */
+        const PERSONAL_CONFIG = {
+            // Allgemeine Titel & Begrüßung
+            gameTitle: 'Die Reise des kleinen Lamas',
+            welcomeBadge: '✨ Ein interaktives Geschenk zum 1. Jubiläum ✨',
+            welcomeText: 'Begleite unser kleines Lama durch drei magische Welten in der Abendsonne. Löse die drei Rätsel der Harmonie, der Schritte und der Erinnerungen, um am Sternenhimmel-Gipfel den geheimen Jubiläumsschatz zu bergen.',
+
+            // Finale & Video-Einstellungen
+            videoSource: './video.mp4',
+            finaleTitle: 'Alles Liebe zu unserem 1. Jubiläum! ❤️',
+            finaleSubtitle: 'Ein ganzes Jahr voller wundervoller Momente – und unser Abenteuer fängt gerade erst an.',
+
+            // ------------------------------------------------------------------------
+            // WELT 1: DIE RUNEN-SOCKEL (Die schwebende Alpen-Oase)
+            // ------------------------------------------------------------------------
+            world1: {
+                title: '1. Die schwebende Wiesen-Oase',
+                objectiveUnfinished: 'Lies die 3 Steintafeln [E] und richte die 3 Runen-Sockel in der richtigen Symbolfolge aus.',
+                objectiveSolved: 'Rätsel gelöst! Schreite im Norden durch das goldene Portal in Welt 2.',
+                // Start-Zustand der 3 Sockel (Indizes aus `symbols` unten)
+                initialState: [1, 3, 0],
+                // Ziel-Zustand: Links = 0 (Sonne), Mitte = 1 (Mond), Rechts = 2 (Stern)
+                targetState: [0, 1, 2],
+                // Verfügbare Runen-Symbole
+                symbols: [
+                    { id: 0, key: 'runeSun',   name: 'Sonne',  icon: '☀️', color: '#fbbf24', hex: 0xfbbf24 },
+                    { id: 1, key: 'runeMoon',  name: 'Mond',   icon: '🌙', color: '#38bdf8', hex: 0x38bdf8 },
+                    { id: 2, key: 'runeStar',  name: 'Stern',  icon: '✦',  color: '#c084fc', hex: 0xc084fc },
+                    { id: 3, key: 'runeFlame', name: 'Flamme', icon: '🔥', color: '#fb7185', hex: 0xfb7185 }
+                ],
+                // Die 3 Hinweis-Steintafeln in Welt 1
+                hints: [
+                    {
+                        title: 'Steintafel des Westens (I/III)',
+                        text: '„Wo unsere Reise beginnt, erwacht der LINKE Sockel im goldenen Glanz der SONNE (☀️). Doch gib acht: Drehst du den linken Sockel, dreht sich der mittlere im Einklang mit!“'
+                    },
+                    {
+                        title: 'Steintafel der Mitte (II/III)',
+                        text: '„Im Herzen der Oase hütet der MITTLERE Sockel den silbernen MOND (🌙). Drehst du den mittleren Sockel, bewegt er zugleich den rechten Sockel um eine Stufe weiter.“'
+                    },
+                    {
+                        title: 'Steintafel des Ostens (III/III)',
+                        text: '„Der RECHTE Sockel leuchtet für die Ewigkeit unter dem violetten STERN (✦). Er allein dreht sich frei, ohne seine Brüder zu verändern. Stelle daher erst Links, dann Mitte, dann Rechts ein!“'
+                    }
+                ]
+            },
+
+            // ------------------------------------------------------------------------
+            // WELT 2: DER PFAD DER LEUCHTENDEN TRITTSTEINE (Die Dämmerungs-Schlucht)
+            // ------------------------------------------------------------------------
+            world2: {
+                title: '2. Die Dämmerungs-Schlucht',
+                objectiveUnfinished: 'Studiere die 2 Obelisken [E] und überquere die 5 Platten-Reihen in der exakten Zahlenfolge.',
+                objectiveSolved: 'Brücke gemeistert! Betritt das goldene Portal auf dem Nord-Plateau.',
+                // 5 Reihen (von Süd nach Nord) x 4 Spalten (von West nach Ost)
+                gridNumbers: [
+                    [1,  2,  3,  5],   // Reihe 1 (Start am Süd-Plateau)
+                    [6,  3,  4,  8],   // Reihe 2
+                    [9,  7,  5, 10],   // Reihe 3
+                    [12, 14, 11, 13],  // Reihe 4
+                    [15, 16, 18, 20]   // Reihe 5 (Ziel am Nord-Plateau)
+                ],
+                // Die 5 richtigen Zielwerte (einer pro Reihe von Reihe 1 bis Reihe 5)
+                // Du kannst hier beliebige Zahlen (z. B. Kennenlerndatum/Insider) eintragen,
+                // solange die jeweilige Zahl in der entsprechenden Reihe von `gridNumbers` vorkommt!
+                solutionPath: [2, 4, 7, 11, 16],
+                // Die 2 Hinweis-Obelisken in Welt 2
+                hints: [
+                    {
+                        title: 'Obelisk der Zahlenfolge (I/II)',
+                        text: '„Nur fünf heilige Platten tragen dich über den glühenden Abgrund (eine in jeder Reihe). Beginne in Reihe 1 auf der Zahl ZWEI (2) – wie zwei Herzen, die gemeinsam aufbrechen.“'
+                    },
+                    {
+                        title: 'Obelisk des Wachstums (II/II)',
+                        text: '„Mit jeder Reihe wächst der Sprung um +1: Addiere erst +2 (auf 4), dann +3 (auf 7), dann +4 (auf 11) und zuletzt +5 (auf 16). Der sichere Pfad lautet: 2 ➔ 4 ➔ 7 ➔ 11 ➔ 16.“'
+                    }
+                ]
+            },
+
+            // ------------------------------------------------------------------------
+            // WELT 3: DER ALTAR DER ERINNERUNGEN (Der Sternenhimmel-Gipfel)
+            // ------------------------------------------------------------------------
+            world3: {
+                title: '3. Der Sternenhimmel-Gipfel',
+                objectiveUnfinished: 'Lies den Kristall-Monolithen [E] und löse am Altar der Erinnerungen die 3 Siegel.',
+                objectiveSolved: 'Der Schatz ist erschienen! Öffne die goldene Truhe in der Mitte mit [E].',
+                // Hinweis-Text am leuchtenden Kristall-Monolithen auf dem Gipfel
+                monolithHint: {
+                    title: 'Kristall-Monolith der Sterne',
+                    text: '„Drei Schlüssel öffnen den Schatz: 1. Die Zahl 51 aus Monaten, Jahreszeiten und Welten. 2. Das um -1 verschobene Wort hinter M-J-F-C-F. 3. Die 365 Sonnenaufgänge unseres ersten Jahres.“'
+                },
+                // Die 3 Fragen im Altar-Terminal (Antworten werden unabhängig von Groß-/Kleinschreibung geprüft)
+                questions: [
+                    {
+                        id: 'lock1',
+                        title: 'I. Das Siegel der gemeinsamen Zeit',
+                        questionText: 'Ein ganzes Jahr voller Erinnerungen liegt hinter uns: Multipliziere die Anzahl der Monate eines Jahres (12) mit den vier Jahreszeiten (4) und addiere die 3 Welten dieser Reise hinzu. Welche Zahl öffnet das erste Siegel?',
+                        placeholder: 'Zahl eingeben (z. B. 51)...',
+                        acceptedAnswers: ['51'],
+                        hintText: 'Rechnung: (12 Monate × 4 Jahreszeiten) + 3 Welten = 48 + 3 = 51.'
+                    },
+                    {
+                        id: 'lock2',
+                        title: 'II. Die Sternen-Chiffre',
+                        questionText: 'In der Sprache des Sternenhimmels wurde jeder Buchstabe um eine Stelle im Alphabet nach vorne verschoben (aus A wurde B, aus B wurde C). Entschlüssele das geheime Wort, indem du jeden Buchstaben um -1 zurücksetzt:  M - J - F - C - F',
+                        placeholder: 'Entschlüsseltes Wort (5 Buchstaben)...',
+                        acceptedAnswers: ['liebe'],
+                        hintText: 'M→L, J→I, F→E, C→B, F→E. Das Lösungswort lautet: LIEBE'
+                    },
+                    {
+                        id: 'lock3',
+                        title: 'III. Das Rätsel des Horizonts',
+                        questionText: 'Aus wie vielen Tagen besteht ein klassisches gemeinsames Jahr voller Sonnenaufgänge (ohne Schaltjahr), an dessen Ende wir heute unser Jubiläum feiern?',
+                        placeholder: 'Anzahl der Tage eines Jahres...',
+                        acceptedAnswers: ['365', 'dreihundertfünfundsechzig'],
+                        hintText: 'Ein klassisches Jahr hat genau 365 Tage.'
+                    }
+                ]
+            }
+        };
+
+        /**
+         * ============================================================================
+         * 2. NAHTLOSER (TILEABLE) MULTI-OKTAVEN NOISE-GENERATOR
+         * ============================================================================
+         * Verwendet periodisches Modulo-Gitter-Noise, damit alle prozeduralen Texturen
+         * an ihren Kanten zu 100 % nahtlos kachelbar (`RepeatWrapping`) sind.
+         */
+        class SeamlessNoise {
+            constructor(seed = 202601) {
+                this.perm = new Uint8Array(512);
+                let s = seed;
+                const p = new Uint8Array(256);
+                for (let i = 0; i < 256; i++) p[i] = i;
+                for (let i = 255; i > 0; i--) {
+                    s = (s * 16807) % 2147483647;
+                    const j = s % (i + 1);
+                    const tmp = p[i];
+                    p[i] = p[j];
+                    p[j] = tmp;
+                }
+                for (let i = 0; i < 512; i++) this.perm[i] = p[i & 255];
+            }
+
+            fade(t) {
+                return t * t * t * (t * (t * 6 - 15) + 10);
+            }
+
+            lerp(a, b, t) {
+                return a + t * (b - a);
+            }
+
+            grad(hash, x, y) {
+                const h = hash & 7;
+                const u = h < 4 ? x : y;
+                const v = h < 4 ? y : x;
+                return ((h & 1) !== 0 ? -u : u) + ((h & 2) !== 0 ? -2.0 * v : 2.0 * v);
+            }
+
+            // Periodisches 2D-Noise über `period` (garantiert nahtlose Texturkanten)
+            periodicNoise2D(x, y, period = 16) {
+                const xi = Math.floor(x);
+                const yi = Math.floor(y);
+                const xf = x - xi;
+                const yf = y - yi;
+
+                const X0 = ((xi % period) + period) % period;
+                const Y0 = ((yi % period) + period) % period;
+                const X1 = (X0 + 1) % period;
+                const Y1 = (Y0 + 1) % period;
+
+                const u = this.fade(xf);
+                const v = this.fade(yf);
+
+                const aa = this.perm[this.perm[X0] + Y0];
+                const ab = this.perm[this.perm[X0] + Y1];
+                const ba = this.perm[this.perm[X1] + Y0];
+                const bb = this.perm[this.perm[X1] + Y1];
+
+                const res = this.lerp(
+                    this.lerp(this.grad(aa, xf, yf), this.grad(ba, xf - 1, yf), u),
+                    this.lerp(this.grad(ab, xf, yf - 1), this.grad(bb, xf - 1, yf - 1), u),
+                    v
+                );
+                return Math.min(1, Math.max(0, (res + 1) * 0.5));
+            }
+
+            // Nahtloses Fractional Brownian Motion (Multi-Oktaven) für Texturen (nx, ny in [0..1])
+            seamlessFBM(nx, ny, baseScale = 8, octaves = 4, persistence = 0.5) {
+                let total = 0;
+                let amplitude = 1;
+                let maxValue = 0;
+                let freq = baseScale;
+
+                for (let i = 0; i < octaves; i++) {
+                    const period = Math.max(2, Math.round(freq));
+                    total += this.periodicNoise2D(nx * period, ny * period, period) * amplitude;
+                    maxValue += amplitude;
+                    amplitude *= persistence;
+                    freq *= 2;
+                }
+                return total / maxValue;
+            }
+
+            // Freies 2D-FBM für Welt-Terrain & Klippen-Geometrie
+            terrainFBM(x, y, octaves = 4) {
+                let total = 0;
+                let amp = 1;
+                let max = 0;
+                let freq = 1;
+                for (let i = 0; i < octaves; i++) {
+                    total += this.periodicNoise2D(x * freq, y * freq, 256) * amp;
+                    max += amp;
+                    amp *= 0.5;
+                    freq *= 2.05;
+                }
+                return total / max;
+            }
+        }
+
+        const noiseGen = new SeamlessNoise(42026);
+
+        /**
+         * ============================================================================
+         * 3. WEB AUDIO API SYNTHESIZER (ZERO EXTERNAL ASSETS)
+         * ============================================================================
+         */
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioCtx();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            toggleMute() {
+                this.muted = !this.muted;
+                return this.muted;
+            }
+
+            playTone(freq, type = 'sine', duration = 0.25, volume = 0.12, delay = 0, slideFreq = null) {
+                if (this.muted || !this.ctx) return;
+                try {
+                    const now = this.ctx.currentTime + delay;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, now);
+                    if (slideFreq) {
+                        osc.frequency.exponentialRampToValueAtTime(slideFreq, now + duration);
+                    }
+
+                    gain.gain.setValueAtTime(0.0001, now);
+                    gain.gain.linearRampToValueAtTime(volume, now + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start(now);
+                    osc.stop(now + duration + 0.02);
+                } catch (e) {}
+            }
+
+            playJump() {
+                this.playTone(260, 'sine', 0.22, 0.12, 0, 520);
+            }
+
+            playStep() {
+                this.playTone(115 + Math.random() * 35, 'triangle', 0.055, 0.03);
+            }
+
+            playInteract() {
+                this.playTone(523.25, 'sine', 0.12, 0.1);
+                this.playTone(659.25, 'sine', 0.18, 0.1, 0.06);
+            }
+
+            playRuneRotate(symbolIndex) {
+                const freqs = [392.00, 440.00, 523.25, 587.33];
+                const f = freqs[symbolIndex % freqs.length];
+                this.playTone(f, 'triangle', 0.28, 0.14);
+                this.playTone(f * 1.5, 'sine', 0.35, 0.07, 0.04);
+            }
+
+            playTileCorrect(stepIndex) {
+                const scale = [440, 493.88, 554.37, 659.25, 739.99, 880];
+                const f = scale[stepIndex % scale.length];
+                this.playTone(f, 'sine', 0.4, 0.15);
+                this.playTone(f * 1.25, 'triangle', 0.45, 0.08, 0.05);
+            }
+
+            playError() {
+                this.playTone(220, 'sawtooth', 0.22, 0.08, 0, 150);
+                this.playTone(165, 'sawtooth', 0.3, 0.08, 0.12, 110);
+            }
+
+            playPuzzleSolved() {
+                const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+                notes.forEach((n, idx) => {
+                    this.playTone(n, 'triangle', 0.55, 0.14, idx * 0.09);
+                });
+            }
+
+            playTeleport() {
+                const notes = [330, 440, 554.37, 659.25, 880, 1108.73, 1318.51];
+                notes.forEach((n, idx) => {
+                    this.playTone(n, 'sine', 0.45, 0.11, idx * 0.06, n * 1.15);
+                });
+            }
+
+            playChestFanfare() {
+                const chord = [
+                    { f: 523.25, d: 0.0, dur: 0.3 },
+                    { f: 659.25, d: 0.15, dur: 0.3 },
+                    { f: 783.99, d: 0.30, dur: 0.3 },
+                    { f: 1046.50, d: 0.45, dur: 0.85 },
+                    { f: 783.99, d: 0.45, dur: 0.85 },
+                    { f: 1318.51, d: 0.75, dur: 1.2 }
+                ];
+                chord.forEach(c => this.playTone(c.f, 'triangle', c.dur, 0.15, c.d));
+            }
+        }
+
+        const sound = new SoundEngine();
+
+        /**
+         * ============================================================================
+         * 4. FEHLERFREIE PROZEDURALE PBR-TEXTUR-ENGINE (`TextureFactory`)
+         * ============================================================================
+         * - Setzt garantiert `alpha = 255` für jeden Pixel.
+         * - Verwendet `THREE.sRGBEncoding` für Farbtexturen (`map`) und
+         *   `THREE.LinearEncoding` für `bumpMap` & `roughnessMap`.
+         * - Setzt `RepeatWrapping`, `maxAnisotropy` und `needsUpdate = true`.
+         */
+        class TextureFactory {
+            static cache = {};
+            static maxAnisotropy = 8;
+
+            static configureTexture(tex, isColorMap = true, repeatX = 1, repeatY = 1) {
+                tex.wrapS = THREE.RepeatWrapping;
+                tex.wrapT = THREE.RepeatWrapping;
+                tex.repeat.set(repeatX, repeatY);
+                tex.encoding = isColorMap ? THREE.sRGBEncoding : THREE.LinearEncoding;
+                tex.anisotropy = this.maxAnisotropy;
+                tex.needsUpdate = true;
+                return tex;
+            }
+
+            /**
+             * Erzeugt nahtlose PBR-Textur-Sets (`map`, `bumpMap`, `roughnessMap`)
+             * Unterstützte Typen:
+             * 'meadow', 'granite', 'sandstone', 'slate', 'bark', 'wood', 'templeStone', 'llamaWool', 'water'
+             */
+            static getPBRSet(type, repeatX = null, repeatY = null) {
+                const cacheKey = `${type}_${repeatX || 'def'}_${repeatY || 'def'}`;
+                if (this.cache[cacheKey]) return this.cache[cacheKey];
+
+                const size = 256;
+                const diffCanvas = document.createElement('canvas');
+                const bumpCanvas = document.createElement('canvas');
+                const roughCanvas = document.createElement('canvas');
+                diffCanvas.width = bumpCanvas.width = roughCanvas.width = size;
+                diffCanvas.height = bumpCanvas.height = roughCanvas.height = size;
+
+                const dCtx = diffCanvas.getContext('2d');
+                const bCtx = bumpCanvas.getContext('2d');
+                const rCtx = roughCanvas.getContext('2d');
+
+                const dImg = dCtx.createImageData(size, size);
+                const bImg = bCtx.createImageData(size, size);
+                const rImg = rCtx.createImageData(size, size);
+
+                let defRep = 4;
+                if (type === 'meadow' || type === 'granite' || type === 'sandstone' || type === 'slate') defRep = 6;
+                if (type === 'water') defRep = 8;
+                if (type === 'llamaWool') defRep = 4;
+                if (type === 'templeStone' || type === 'wood') defRep = 2;
+
+                const rx = repeatX !== null ? repeatX : defRep;
+                const ry = repeatY !== null ? repeatY : defRep;
+
+                for (let y = 0; y < size; y++) {
+                    for (let x = 0; x < size; x++) {
+                        const idx = (y * size + x) * 4;
+                        const nx = x / size;
+                        const ny = y / size;
+
+                        let r = 128, g = 128, b = 128;
+                        let heightVal = 128;
+                        let roughVal = 200;
+
+                        if (type === 'meadow') {
+                            // Sattes Alpen-Wiesengras mit Moos-Nuancen, Erdtönen und feiner Halmstruktur
+                            const base = noiseGen.seamlessFBM(nx, ny, 6, 4, 0.55);
+                            const moss = noiseGen.seamlessFBM(nx + 0.3, ny + 0.7, 12, 3, 0.5);
+                            const blades = noiseGen.seamlessFBM(nx, ny, 32, 2, 0.65);
+                            const soilMask = Math.max(0, 0.38 - base) * 2.2;
+
+                            r = 34 + base * 42 + moss * 24 + soilMask * 65;
+                            g = 96 + base * 68 + blades * 32 - soilMask * 25;
+                            b = 36 + base * 28 + moss * 14;
+                            heightVal = Math.floor((base * 0.35 + blades * 0.65) * 255);
+                            roughVal = Math.floor(175 + (1 - blades) * 65);
+
+                        } else if (type === 'granite') {
+                            // Realistischer Granit- & Klippenfels mit Quarz-Sprenkeln, Rissen und Flechten
+                            const n1 = noiseGen.seamlessFBM(nx, ny, 8, 5, 0.55);
+                            const grain = noiseGen.seamlessFBM(nx, ny, 32, 3, 0.6);
+                            const ridge = 1.0 - Math.abs(noiseGen.periodicNoise2D(nx * 12, ny * 12, 12) * 2 - 1);
+                            const val = n1 * 0.55 + ridge * 0.30 + grain * 0.15;
+
+                            r = 88 + val * 74;
+                            g = 84 + val * 72;
+                            b = 80 + val * 70;
+                            heightVal = Math.floor(val * 255);
+                            roughVal = Math.floor(165 + (1 - ridge) * 75);
+
+                        } else if (type === 'sandstone') {
+                            // Warmer, geschichteter Canyon-Sandstein (Terrakotta, Ocker & feine Sandkörnung)
+                            const warp = noiseGen.seamlessFBM(nx, ny, 6, 3, 0.5) * 0.25;
+                            const strata = Math.sin((ny * 6 + warp * 4) * Math.PI * 2) * 0.5 + 0.5;
+                            const sandGrain = noiseGen.seamlessFBM(nx, ny, 28, 3, 0.6);
+                            const val = strata * 0.62 + sandGrain * 0.38;
+
+                            r = 162 + val * 82;
+                            g = 78 + val * 64;
+                            b = 36 + val * 38;
+                            heightVal = Math.floor((strata * 0.55 + sandGrain * 0.45) * 255);
+                            roughVal = Math.floor(185 + (1 - sandGrain) * 55);
+
+                        } else if (type === 'slate') {
+                            // Dunkler Alpenschiefer mit kristallinen Quarz-Adern für den Sternengipfel
+                            const n1 = noiseGen.seamlessFBM(nx, ny, 8, 5, 0.52);
+                            const veinNoise = Math.abs(noiseGen.periodicNoise2D(nx * 10 + n1 * 2, ny * 10, 10) * 2 - 1);
+                            const quartzVein = Math.pow(Math.max(0, 1.0 - veinNoise * 3.5), 2.0);
+
+                            r = 42 + n1 * 48 + quartzVein * 155;
+                            g = 48 + n1 * 56 + quartzVein * 165;
+                            b = 82 + n1 * 72 + quartzVein * 170;
+                            heightVal = Math.floor((n1 * 0.72 + quartzVein * 0.28) * 255);
+                            roughVal = Math.floor(140 - quartzVein * 90 + (1 - n1) * 70);
+
+                        } else if (type === 'bark') {
+                            // Vertikale knorrige Baumrinde
+                            const verticalFibers = noiseGen.seamlessFBM(nx * 2, ny * 0.5, 16, 4, 0.6);
+                            const mossHint = Math.max(0, noiseGen.seamlessFBM(nx, ny, 6, 2, 0.5) - 0.62) * 2.0;
+                            const furrow = Math.pow(verticalFibers, 1.35);
+
+                            r = 68 + furrow * 58 - mossHint * 18;
+                            g = 44 + furrow * 38 + mossHint * 36;
+                            b = 26 + furrow * 24;
+                            heightVal = Math.floor(furrow * 255);
+                            roughVal = 225;
+
+                        } else if (type === 'wood') {
+                            // Warmes, edel gemasertes Hartholz für die Schatztruhe
+                            const wobble = noiseGen.seamlessFBM(nx, ny, 4, 2, 0.5) * 0.15;
+                            const rings = Math.sin((ny * 10 + wobble * 6) * Math.PI * 2) * 0.5 + 0.5;
+                            const fineFiber = noiseGen.seamlessFBM(nx * 2, ny * 0.5, 24, 3, 0.55);
+                            const woodVal = rings * 0.65 + fineFiber * 0.35;
+
+                            r = 112 + woodVal * 68;
+                            g = 54 + woodVal * 42;
+                            b = 22 + woodVal * 22;
+                            heightVal = Math.floor((rings * 0.4 + fineFiber * 0.6) * 255);
+                            roughVal = Math.floor(110 + (1 - rings) * 55);
+
+                        } else if (type === 'templeStone') {
+                            // Verwitterter antiker Tempelstein mit eingemeißeltem Ornament-Rand
+                            const stoneNoise = noiseGen.seamlessFBM(nx, ny, 10, 4, 0.55);
+                            const borderDist = Math.min(nx, 1 - nx, ny, 1 - ny);
+                            const frameGroove = (borderDist > 0.05 && borderDist < 0.085) ? 0.25 : 1.0;
+                            const val = stoneNoise * frameGroove;
+
+                            r = 95 + val * 78;
+                            g = 88 + val * 72;
+                            b = 78 + val * 64;
+                            heightVal = Math.floor(val * 255);
+                            roughVal = Math.floor(160 + (1 - val) * 70);
+
+                        } else if (type === 'llamaWool') {
+                            // Weiches, lockiges Lama-Wollfell in warmem Cremeweiß
+                            const curls = noiseGen.seamlessFBM(nx, ny, 20, 4, 0.62);
+                            const fineStrand = noiseGen.seamlessFBM(nx, ny, 40, 2, 0.5);
+                            const fleece = curls * 0.7 + fineStrand * 0.3;
+                            const tone = 0.86 + fleece * 0.14;
+
+                            r = 254 * tone;
+                            g = 247 * tone;
+                            b = 232 * tone;
+                            heightVal = Math.floor(fleece * 255);
+                            roughVal = 230;
+
+                        } else if (type === 'water') {
+                            // Nahtlose Wasserwellen-BumpMap
+                            const w1 = noiseGen.seamlessFBM(nx, ny, 10, 4, 0.52);
+                            const w2 = noiseGen.seamlessFBM(nx + 0.4, ny + 0.2, 16, 3, 0.5);
+                            const wave = (w1 + w2) * 0.5;
+
+                            r = 18; g = 118; b = 148;
+                            heightVal = Math.floor(wave * 255);
+                            roughVal = 20;
+                        }
+
+                        // Albedo (sRGB) – Alpha zwingend 255
+                        dImg.data[idx]     = Math.min(255, Math.max(0, Math.round(r)));
+                        dImg.data[idx + 1] = Math.min(255, Math.max(0, Math.round(g)));
+                        dImg.data[idx + 2] = Math.min(255, Math.max(0, Math.round(b)));
+                        dImg.data[idx + 3] = 255;
+
+                        // BumpMap (Linear) – Alpha zwingend 255
+                        bImg.data[idx]     = heightVal;
+                        bImg.data[idx + 1] = heightVal;
+                        bImg.data[idx + 2] = heightVal;
+                        bImg.data[idx + 3] = 255;
+
+                        // RoughnessMap (Linear) – Alpha zwingend 255
+                        rImg.data[idx]     = roughVal;
+                        rImg.data[idx + 1] = roughVal;
+                        rImg.data[idx + 2] = roughVal;
+                        rImg.data[idx + 3] = 255;
+                    }
+                }
+
+                dCtx.putImageData(dImg, 0, 0);
+                bCtx.putImageData(bImg, 0, 0);
+                rCtx.putImageData(rImg, 0, 0);
+
+                const map = this.configureTexture(new THREE.CanvasTexture(diffCanvas), true, rx, ry);
+                const bumpMap = this.configureTexture(new THREE.CanvasTexture(bumpCanvas), false, rx, ry);
+                const roughnessMap = this.configureTexture(new THREE.CanvasTexture(roughCanvas), false, rx, ry);
+
+                this.cache[cacheKey] = { map, bumpMap, roughnessMap };
+                return this.cache[cacheKey];
+            }
+
+            /**
+             * Erzeugt die gewebte Anden-/Boho-Satteldecke mit echter Textil-Webstruktur (`saddleCloth`)
+             */
+            static createSaddleClothTextures() {
+                if (this.cache.saddleCloth) return this.cache.saddleCloth;
+
+                const size = 256;
+                const canvas = document.createElement('canvas');
+                const bump = document.createElement('canvas');
+                canvas.width = bump.width = size;
+                canvas.height = bump.height = size;
+                const ctx = canvas.getContext('2d');
+                const bCtx = bump.getContext('2d');
+
+                // Grundfarbe: Edles Karminrot
+                ctx.fillStyle = '#9f1239';
+                ctx.fillRect(0, 0, size, size);
+
+                // Traditionelle Anden-Streifen (Gold, Türkis, Creme, Dunkelblau)
+                const stripes = [
+                    { y: 12,  h: 18, color: '#1e1b4b' },
+                    { y: 34,  h: 16, color: '#f59e0b' },
+                    { y: 56,  h: 36, color: '#0d9488' },
+                    { y: 98,  h: 60, color: '#fef3c7' },
+                    { y: 164, h: 36, color: '#0d9488' },
+                    { y: 206, h: 16, color: '#f59e0b' },
+                    { y: 226, h: 18, color: '#1e1b4b' }
+                ];
+                stripes.forEach(s => {
+                    ctx.fillStyle = s.color;
+                    ctx.fillRect(0, s.y, size, s.h);
+                });
+
+                // Inka-Stufenrauten in der cremefarbenen Mittelborte
+                for (let x = 16; x < size; x += 32) {
+                    ctx.fillStyle = '#9f1239';
+                    ctx.beginPath();
+                    ctx.moveTo(x, 104);
+                    ctx.lineTo(x + 14, 128);
+                    ctx.lineTo(x, 152);
+                    ctx.lineTo(x - 14, 128);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.beginPath();
+                    ctx.arc(x, 128, 4.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Feine Zickzack-Webnaht auf den türkisen Bändern
+                ctx.strokeStyle = '#fde68a';
+                ctx.lineWidth = 2.5;
+                [74, 182].forEach(yCenter => {
+                    ctx.beginPath();
+                    for (let x = 0; x <= size; x += 8) {
+                        const yOff = (x % 16 === 0) ? -7 : 7;
+                        if (x === 0) ctx.moveTo(x, yCenter + yOff);
+                        else ctx.lineTo(x, yCenter + yOff);
+                    }
+                    ctx.stroke();
+                });
+
+                // Faden-Webstruktur (Kreuzköper) in Albedo & BumpMap einarbeiten
+                const dImg = ctx.getImageData(0, 0, size, size);
+                const bImg = bCtx.createImageData(size, size);
+                for (let y = 0; y < size; y++) {
+                    for (let x = 0; x < size; x++) {
+                        const idx = (y * size + x) * 4;
+                        const warpThread = Math.sin(x * Math.PI * 0.5) * 0.5 + 0.5;
+                        const weftThread = Math.sin(y * Math.PI * 0.5) * 0.5 + 0.5;
+                        const weave = ((x + y) % 4 < 2) ? warpThread : weftThread;
+                        const shade = 0.90 + weave * 0.16;
+
+                        dImg.data[idx]     = Math.min(255, Math.round(dImg.data[idx] * shade));
+                        dImg.data[idx + 1] = Math.min(255, Math.round(dImg.data[idx + 1] * shade));
+                        dImg.data[idx + 2] = Math.min(255, Math.round(dImg.data[idx + 2] * shade));
+                        dImg.data[idx + 3] = 255;
+
+                        const h = Math.floor(80 + weave * 165);
+                        bImg.data[idx]     = h;
+                        bImg.data[idx + 1] = h;
+                        bImg.data[idx + 2] = h;
+                        bImg.data[idx + 3] = 255;
+                    }
+                }
+                ctx.putImageData(dImg, 0, 0);
+                bCtx.putImageData(bImg, 0, 0);
+
+                const map = this.configureTexture(new THREE.CanvasTexture(canvas), true, 1, 1);
+                const bumpMap = this.configureTexture(new THREE.CanvasTexture(bump), false, 1, 1);
+
+                this.cache.saddleCloth = { map, bumpMap };
+                return this.cache.saddleCloth;
+            }
+
+            /**
+             * Erzeugt gestochen scharfe, leuchtende Runen-Gravuren auf dunklem Obsidian-Stein
+             */
+            static createRuneTexture(symbolObj) {
+                const cacheKey = `rune_${symbolObj.id}_${symbolObj.name}`;
+                if (this.cache[cacheKey]) return this.cache[cacheKey];
+
+                const size = 256;
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+
+                // Dunkler Obsidian-/Tempelstein-Grund
+                ctx.fillStyle = '#141218';
+                ctx.fillRect(0, 0, size, size);
+
+                // Naturstein-Maserung im Hintergrund
+                const bgImg = ctx.getImageData(0, 0, size, size);
+                for (let y = 0; y < size; y++) {
+                    for (let x = 0; x < size; x++) {
+                        const idx = (y * size + x) * 4;
+                        const n = noiseGen.seamlessFBM(x / size, y / size, 12, 3, 0.5);
+                        const v = Math.floor(18 + n * 28);
+                        bgImg.data[idx]     = v;
+                        bgImg.data[idx + 1] = v - 2;
+                        bgImg.data[idx + 2] = v + 6;
+                        bgImg.data[idx + 3] = 255;
+                    }
+                }
+                ctx.putImageData(bgImg, 0, 0);
+
+                // Leuchtender Runen-Rahmen & Eck-Ornamente
+                ctx.strokeStyle = symbolObj.color;
+                ctx.shadowColor = symbolObj.color;
+                ctx.shadowBlur = 16;
+                ctx.lineWidth = 8;
+                ctx.strokeRect(16, 16, 224, 224);
+
+                ctx.lineWidth = 3;
+                ctx.strokeRect(28, 28, 200, 200);
+
+                // Gravur-Kreis in der Mitte
+                ctx.beginPath();
+                ctx.arc(128, 110, 62, 0, Math.PI * 2);
+                ctx.fillStyle = '#09080c';
+                ctx.fill();
+                ctx.lineWidth = 5;
+                ctx.stroke();
+
+                // Vektor-Runensymbol + Icon für kristallklare Darstellung
+                ctx.font = 'bold 72px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = symbolObj.color;
+                ctx.fillText(symbolObj.icon, 128, 112);
+
+                // Eingemeißelter Symbol-Name unten
+                ctx.shadowBlur = 10;
+                ctx.font = 'bold 25px Cinzel, serif';
+                ctx.fillStyle = '#fef3c7';
+                ctx.fillText(symbolObj.name.toUpperCase(), 128, 204);
+
+                const tex = this.configureTexture(new THREE.CanvasTexture(canvas), true, 1, 1);
+                this.cache[cacheKey] = tex;
+                return tex;
+            }
+
+            /**
+             * Erzeugt antike eingemeißelte Zahlen-Platten für die Trittsteine in Welt 2
+             */
+            static createNumberTileTexture(num, state = 'normal') {
+                const cacheKey = `tile_${num}_${state}`;
+                if (this.cache[cacheKey]) return this.cache[cacheKey];
+
+                const size = 256;
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+
+                // Stein-Basisfarbe je nach Aktivierungsstatus
+                const baseR = state === 'active' ? 8  : (state === 'error' ? 115 : 46);
+                const baseG = state === 'active' ? 78 : (state === 'error' ? 24  : 40);
+                const baseB = state === 'active' ? 58 : (state === 'error' ? 28  : 36);
+
+                const img = ctx.createImageData(size, size);
+                for (let y = 0; y < size; y++) {
+                    for (let x = 0; x < size; x++) {
+                        const idx = (y * size + x) * 4;
+                        const n = noiseGen.seamlessFBM(x / size, y / size, 10, 3, 0.55);
+                        img.data[idx]     = Math.min(255, Math.round(baseR + n * 38));
+                        img.data[idx + 1] = Math.min(255, Math.round(baseG + n * 34));
+                        img.data[idx + 2] = Math.min(255, Math.round(baseB + n * 30));
+                        img.data[idx + 3] = 255;
+                    }
+                }
+                ctx.putImageData(img, 0, 0);
+
+                const borderColor = state === 'active' ? '#34d399' : (state === 'error' ? '#fb7185' : '#f59e0b');
+                ctx.strokeStyle = borderColor;
+                ctx.shadowColor = borderColor;
+                ctx.shadowBlur = state === 'active' ? 18 : 8;
+                ctx.lineWidth = 10;
+                ctx.strokeRect(16, 16, 224, 224);
+
+                ctx.lineWidth = 3;
+                ctx.strokeRect(30, 30, 196, 196);
+
+                ctx.font = 'bold 96px Cinzel, serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = state === 'active' ? '#ecfdf5' : '#fef3c7';
+                ctx.fillText(String(num), 128, 132);
+
+                const tex = this.configureTexture(new THREE.CanvasTexture(canvas), true, 1, 1);
+                this.cache[cacheKey] = tex;
+                return tex;
+            }
+
+            /**
+             * Erzeugt eine weiche additive Glow-Sprite-Textur (ersetzt fehleranfälliges PostProcessing)
+             */
+            static getGlowSpriteTexture() {
+                if (this.cache.glowSprite) return this.cache.glowSprite;
+
+                const size = 128;
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                const ctx = canvas.getContext('2d');
+
+                const grad = ctx.createRadialGradient(64, 64, 2, 64, 64, 62);
+                grad.addColorStop(0.0, 'rgba(255, 255, 255, 1.0)');
+                grad.addColorStop(0.3, 'rgba(254, 240, 138, 0.65)');
+                grad.addColorStop(0.7, 'rgba(245, 158, 11, 0.18)');
+                grad.addColorStop(1.0, 'rgba(245, 158, 11, 0.0)');
+
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, size, size);
+
+                const tex = new THREE.CanvasTexture(canvas);
+                tex.encoding = THREE.sRGBEncoding;
+                tex.needsUpdate = true;
+                this.cache.glowSprite = tex;
+                return tex;
+            }
+
+            /**
+             * Erstellt ein sanftes 3D-Lichthalo-Sprite für Laternen, Kristalle und Runen
+             */
+            static createGlowSprite(hexColor, scale = 2.5, opacity = 0.65) {
+                const mat = new THREE.SpriteMaterial({
+                    map: this.getGlowSpriteTexture(),
+                    color: hexColor,
+                    transparent: true,
+                    opacity: opacity,
+                    blending: THREE.AdditiveBlending,
+                    depthWrite: false
+                });
+                const sprite = new THREE.Sprite(mat);
+                sprite.scale.set(scale, scale, 1);
+                return sprite;
+            }
+
+            /**
+             * Erstellt eine Equirectangular-Umgebungs-Textur für realistische PBR-Spiegelungen (PMREM)
+             */
+            static createEnvMapTexture(worldIndex) {
+                const canvas = document.createElement('canvas');
+                canvas.width = 512;
+                canvas.height = 256;
+                const ctx = canvas.getContext('2d');
+
+                const grad = ctx.createLinearGradient(0, 0, 0, 256);
+                if (worldIndex === 1) {
+                    grad.addColorStop(0.0, '#1e1b4b');
+                    grad.addColorStop(0.28, '#7e22ce');
+                    grad.addColorStop(0.46, '#f97316');
+                    grad.addColorStop(0.52, '#fef08a');
+                    grad.addColorStop(0.58, '#15803d');
+                    grad.addColorStop(1.0, '#052e16');
+                } else if (worldIndex === 2) {
+                    grad.addColorStop(0.0, '#0f172a');
+                    grad.addColorStop(0.32, '#581c87');
+                    grad.addColorStop(0.48, '#ea580c');
+                    grad.addColorStop(0.53, '#fed7aa');
+                    grad.addColorStop(0.60, '#7c2d12');
+                    grad.addColorStop(1.0, '#270e05');
+                } else {
+                    grad.addColorStop(0.0, '#030712');
+                    grad.addColorStop(0.35, '#1e1b4b');
+                    grad.addColorStop(0.48, '#701a75');
+                    grad.addColorStop(0.52, '#f59e0b');
+                    grad.addColorStop(0.60, '#1e1b4b');
+                    grad.addColorStop(1.0, '#090d16');
+                }
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, 512, 256);
+
+                // Sonnenscheibe für natürliche Glanzpunkte auf Wasser, Augen und Gold
+                const sunGrad = ctx.createRadialGradient(180, 122, 2, 180, 122, 48);
+                sunGrad.addColorStop(0, '#ffffff');
+                sunGrad.addColorStop(0.3, '#fef08a');
+                sunGrad.addColorStop(1, 'rgba(251,191,36,0)');
+                ctx.fillStyle = sunGrad;
+                ctx.fillRect(120, 70, 120, 110);
+
+                const tex = new THREE.CanvasTexture(canvas);
+                tex.mapping = THREE.EquirectangularReflectionMapping;
+                tex.encoding = THREE.sRGBEncoding;
+                tex.needsUpdate = true;
+                return tex;
+            }
+        }
+
+        /**
+         * ============================================================================
+         * 5. ATMOSPHÄRISCHER RAYLEIGH/MIE SKY-DOME GLSL SHADER
+         * ============================================================================
+         */
+        const AtmosphericSkyShader = {
+            vertexShader: `
+                varying vec3 vWorldPosition;
+                void main() {
+                    vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                    vWorldPosition = worldPosition.xyz;
+                    gl_Position = projectionMatrix * viewMatrix * worldPosition;
+                }
+            `,
+            fragmentShader: `
+                uniform vec3 topColor;
+                uniform vec3 midColor;
+                uniform vec3 horizonColor;
+                uniform vec3 sunPosition;
+                uniform float starIntensity;
+                uniform float uTime;
+                varying vec3 vWorldPosition;
+
+                // Schneller Hash für funkelnde Sterne am Nachthimmel
+                float hash(vec3 p) {
+                    p = fract(p * 0.3183099 + 0.1);
+                    p *= 17.0;
+                    return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+                }
+
+                void main() {
+                    vec3 dir = normalize(vWorldPosition);
+                    float y = clamp(dir.y, 0.0, 1.0);
+
+                    // Mehrstufiger atmosphärischer Himmelsverlauf
+                    vec3 col = mix(horizonColor, midColor, smoothstep(0.0, 0.28, y));
+                    col = mix(col, topColor, smoothstep(0.22, 0.85, y));
+
+                    // Realistische Sonnenscheibe + Mie-Scattering Corona
+                    vec3 sunDir = normalize(sunPosition);
+                    float sunAmt = max(dot(dir, sunDir), 0.0);
+                    col += vec3(1.0, 0.65, 0.25) * pow(sunAmt, 10.0) * 0.55;
+                    col += vec3(1.0, 0.92, 0.65) * pow(sunAmt, 64.0) * 0.9;
+                    col += vec3(1.0, 0.98, 0.9) * smoothstep(0.9982, 0.9996, sunAmt) * 2.2;
+
+                    // Funkelnde Sterne im oberen Himmelsgewölbe
+                    if (y > 0.08 && starIntensity > 0.0) {
+                        vec3 starGrid = floor(dir * 260.0);
+                        float h = hash(starGrid);
+                        if (h > 0.9945) {
+                            float twinkle = 0.55 + 0.45 * sin(uTime * 3.0 + h * 100.0);
+                            float starMask = smoothstep(0.08, 0.45, y);
+                            col += vec3(1.0, 0.97, 0.88) * ((h - 0.9945) * 180.0) * twinkle * starMask * starIntensity;
+                        }
+                    }
+
+                    gl_FragColor = vec4(col, 1.0);
+                }
+            `
+        };
+
+        /**
+         * ============================================================================
+         * 6. HAUPT-SPIELKLASSE (`LlamaAnniversaryGame`)
+         * ============================================================================
+         */
+        class LlamaAnniversaryGame {
+            constructor() {
+                this.canvas = document.getElementById('game-canvas');
+                this.scene = new THREE.Scene();
+                this.clock = new THREE.Clock();
+
+                // Begrüßungs-Texte dynamisch aus PERSONAL_CONFIG initialisieren
+                document.title = PERSONAL_CONFIG.gameTitle;
+                document.getElementById('ui-welcome-badge').textContent = PERSONAL_CONFIG.welcomeBadge;
+                document.getElementById('ui-welcome-title').textContent = PERSONAL_CONFIG.gameTitle;
+                document.getElementById('ui-welcome-text').textContent = PERSONAL_CONFIG.welcomeText;
+
+                const videoSourceEl = document.querySelector('#anniversary-video source');
+                if (videoSourceEl) {
+                    videoSourceEl.src = PERSONAL_CONFIG.videoSource;
+                }
+
+                // Kamera-Setup (mit frei drehbarem Orbit-Winkel)
+                this.camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.1, 500);
+                this.camera.position.set(0, 8.5, 13.5);
+                this.cameraLookAtTarget = new THREE.Vector3(0, 1.8, 0);
+                this.cameraOrbitAngle = 0;
+                this.cameraPitchOffset = 6.8;
+                this.cameraDistance = 12.2;
+                this.isPointerDragging = false;
+                this.lastPointerX = 0;
+                this.lastPointerY = 0;
+
+                // Physikalischer PBR Renderer mit exaktem sRGBEncoding & ACESFilmicToneMapping
+                this.renderer = new THREE.WebGLRenderer({
+                    canvas: this.canvas,
+                    antialias: true,
+                    powerPreference: 'high-performance'
+                });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                this.renderer.outputEncoding = THREE.sRGBEncoding;
+                this.renderer.physicallyCorrectLights = true;
+                this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+                this.renderer.toneMappingExposure = 1.12;
+
+                // Maximale Anisotropie des Grafikchips für gestochen scharfe Bodentexturen auslesen
+                TextureFactory.maxAnisotropy = this.renderer.capabilities.getMaxAnisotropy() || 8;
+
+                // PMREM-Generator für realistische HDR-Umgebungsreflexionen
+                this.pmremGenerator = new THREE.PMREMGenerator(this.renderer);
+                this.pmremGenerator.compileEquirectangularShader();
+
+                // Spiel-Status
+                this.currentWorld = 1;
+                this.isTransitioning = false;
+                this.isModalOpen = false;
+                this.activeInteractable = null;
+
+                // Rätsel-Status (dynamisch aus PERSONAL_CONFIG geladen)
+                this.puzzle1State = [...PERSONAL_CONFIG.world1.initialState];
+                this.puzzle1Solved = false;
+                this.puzzle1PedestalMeshes = [];
+
+                this.puzzle2ProgressRow = 0;
+                this.puzzle2Solved = false;
+                this.puzzle2Tiles = [];
+                this.puzzle2Cooldown = 0;
+
+                this.puzzle3Solved = false;
+                this.chestSpawned = false;
+                this.chestOpened = false;
+
+                // Welt-Container & dynamische Listen
+                this.worldGroup = new THREE.Group();
+                this.scene.add(this.worldGroup);
+                this.interactables = [];
+                this.animatedObjects = [];
+                this.particles = [];
+                this.waterMesh = null;
+                this.instancedGrass = null;
+                this.grassMatrices = [];
+                this.walkableBounds = { minX: -14.5, maxX: 14.5, minZ: -14.5, maxZ: 14.5 };
+
+                // Spieler / Lama Parameter
+                this.player = {
+                    group: null,
+                    bodyGroup: null,
+                    neckGroup: null,
+                    headGroup: null,
+                    tailMesh: null,
+                    ears: [],
+                    legs: [],
+                    tassels: [],
+                    velocityY: 0,
+                    isGrounded: true,
+                    walkCycle: 0,
+                    stepTimer: 0,
+                    speed: 8.2,
+                    targetRotationY: Math.PI
+                };
+
+                // Tastatur-Status
+                this.keys = {
+                    forward: false,
+                    backward: false,
+                    left: false,
+                    right: false,
+                    orbitLeft: false,
+                    orbitRight: false
+                };
+
+                this.setupLightingAndSky();
+                this.createRealisticLlama();
+                this.buildWorld(1);
+                this.bindEvents();
+                this.initAltarUI();
+                this.updateHUD();
+
+                // Render-Loop starten
+                this.animate = this.animate.bind(this);
+                requestAnimationFrame(this.animate);
+            }
+
+            /**
+             * Beleuchtung, PBR-Environment-Map & Atmosphären-Shader-Himmel erstellen
+             */
+            setupLightingAndSky() {
+                this.hemiLight = new THREE.HemisphereLight(0xffedd5, 0x3b0764, 1.65);
+                this.scene.add(this.hemiLight);
+
+                this.sunLight = new THREE.DirectionalLight(0xffb366, 3.8);
+                this.sunLight.position.set(-28, 24, -36);
+                this.sunLight.castShadow = true;
+                this.sunLight.shadow.mapSize.width = 2048;
+                this.sunLight.shadow.mapSize.height = 2048;
+                this.sunLight.shadow.camera.near = 2;
+                this.sunLight.shadow.camera.far = 130;
+                const d = 26;
+                this.sunLight.shadow.camera.left = -d;
+                this.sunLight.shadow.camera.right = d;
+                this.sunLight.shadow.camera.top = d;
+                this.sunLight.shadow.camera.bottom = -d;
+                this.sunLight.shadow.bias = -0.0005;
+                this.scene.add(this.sunLight);
+
+                // Warmes Rim-Light für plastische Konturen auf dem Lama-Fell
+                this.rimLight = new THREE.DirectionalLight(0xc084fc, 1.25);
+                this.rimLight.position.set(25, 14, 28);
+                this.scene.add(this.rimLight);
+
+                // Atmosphärischer Shader-SkyDome
+                this.skyUniforms = {
+                    topColor: { value: new THREE.Color(0x1e1b4b) },
+                    midColor: { value: new THREE.Color(0x9d174d) },
+                    horizonColor: { value: new THREE.Color(0xf97316) },
+                    sunPosition: { value: new THREE.Vector3(-38, 15, -95) },
+                    starIntensity: { value: 0.25 },
+                    uTime: { value: 0 }
+                };
+
+                const skyGeo = new THREE.SphereGeometry(240, 48, 32);
+                const skyMat = new THREE.ShaderMaterial({
+                    vertexShader: AtmosphericSkyShader.vertexShader,
+                    fragmentShader: AtmosphericSkyShader.fragmentShader,
+                    uniforms: this.skyUniforms,
+                    side: THREE.BackSide,
+                    depthWrite: false
+                });
+                this.skyDome = new THREE.Mesh(skyGeo, skyMat);
+                this.scene.add(this.skyDome);
+
+                this.scene.fog = new THREE.FogExp2(0x4c1d95, 0.0052);
+            }
+
+            /**
+             * Berechnet die präzise Terrain-Höhe (y) an jedem Punkt (x, z)
+             */
+            getTerrainHeight(x, z, worldNumber = this.currentWorld) {
+                const dist = Math.hypot(x, z);
+                if (worldNumber === 2) {
+                    if (z > -8.2 && z < 6.2 && Math.abs(x) < 10.5) {
+                        return -3.2;
+                    }
+                    if (Math.abs(x) > 11.5) {
+                        const cliffEdge = Math.min(1, (Math.abs(x) - 11.5) / 5.0);
+                        return cliffEdge * 4.5 + noiseGen.terrainFBM(x * 0.15, z * 0.15, 3) * 2.2;
+                    }
+                    return (noiseGen.terrainFBM(x * 0.18, z * 0.18, 2) - 0.5) * 0.18;
+                }
+
+                if (dist < 12.0) {
+                    return (noiseGen.terrainFBM(x * 0.14, z * 0.14, 2) - 0.5) * 0.22;
+                } else if (dist < 17.5) {
+                    const t = (dist - 12.0) / 5.5;
+                    const smoothDrop = t * t * (3 - 2 * t);
+                    const ridge = noiseGen.terrainFBM(x * 0.2, z * 0.2, 3) * 1.4;
+                    return -smoothDrop * 2.4 + ridge * 0.45;
+                } else {
+                    return -2.4;
+                }
+            }
+
+            /**
+             * Modelliert das realistische Lama mit `llamaWool`-PBR-Fell und `saddleCloth`-Webtextur
+             */
+            createRealisticLlama() {
+                const llamaGroup = new THREE.Group();
+                const bodyGroup = new THREE.Group();
+                llamaGroup.add(bodyGroup);
+
+                const fleecePBR = TextureFactory.getPBRSet('llamaWool', 3, 3);
+                const saddlePBR = TextureFactory.createSaddleClothTextures();
+
+                const woolMat = new THREE.MeshStandardMaterial({
+                    color: 0xffffff,
+                    map: fleecePBR.map,
+                    bumpMap: fleecePBR.bumpMap,
+                    bumpScale: 0.045,
+                    roughnessMap: fleecePBR.roughnessMap,
+                    roughness: 0.9,
+                    metalness: 0.02
+                });
+
+                const creamWoolMat = new THREE.MeshStandardMaterial({
+                    color: 0xfde68a,
+                    map: fleecePBR.map,
+                    bumpMap: fleecePBR.bumpMap,
+                    bumpScale: 0.025,
+                    roughness: 0.85
+                });
+
+                const muzzleMat = new THREE.MeshStandardMaterial({
+                    color: 0xe7c697,
+                    roughness: 0.65,
+                    bumpMap: fleecePBR.bumpMap,
+                    bumpScale: 0.012
+                });
+
+                const eyeMat = new THREE.MeshPhysicalMaterial({
+                    color: 0x110c1d,
+                    roughness: 0.04,
+                    metalness: 0.05,
+                    clearcoat: 1.0,
+                    clearcoatRoughness: 0.02
+                });
+
+                const hoofMat = new THREE.MeshStandardMaterial({
+                    color: 0x1c1917,
+                    roughness: 0.35,
+                    metalness: 0.15
+                });
+
+                const pinkMat = new THREE.MeshStandardMaterial({
+                    color: 0xfda4af,
+                    roughness: 0.55
+                });
+
+                const goldMat = new THREE.MeshStandardMaterial({
+                    color: 0xfbbf24,
+                    roughness: 0.22,
+                    metalness: 0.88
+                });
+
+                const saddleMat = new THREE.MeshStandardMaterial({
+                    map: saddlePBR.map,
+                    bumpMap: saddlePBR.bumpMap,
+                    bumpScale: 0.035,
+                    roughness: 0.72,
+                    metalness: 0.05
+                });
+
+                // 1. Organischer Rumpf
+                const mainTorso = new THREE.Mesh(new THREE.SphereGeometry(0.68, 28, 24), woolMat);
+                mainTorso.scale.set(0.92, 0.86, 1.48);
+                mainTorso.position.set(0, 1.36, -0.04);
+                mainTorso.castShadow = true;
+                mainTorso.receiveShadow = true;
+                bodyGroup.add(mainTorso);
+
+                const chest = new THREE.Mesh(new THREE.SphereGeometry(0.56, 24, 20), woolMat);
+                chest.scale.set(0.92, 0.95, 0.95);
+                chest.position.set(0, 1.42, 0.56);
+                chest.castShadow = true;
+                bodyGroup.add(chest);
+
+                const haunches = new THREE.Mesh(new THREE.SphereGeometry(0.58, 24, 20), woolMat);
+                haunches.scale.set(0.90, 0.92, 0.92);
+                haunches.position.set(0, 1.40, -0.62);
+                haunches.castShadow = true;
+                bodyGroup.add(haunches);
+
+                // 2. Gewebte Anden-Satteldecke
+                const saddleCloth = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.66, 0.70, 1.12, 24, 1, false, -Math.PI * 0.68, Math.PI * 1.36),
+                    saddleMat
+                );
+                saddleCloth.rotation.z = Math.PI * 0.5;
+                saddleCloth.rotation.y = Math.PI * 0.5;
+                saddleCloth.scale.set(1.0, 1.0, 0.92);
+                saddleCloth.position.set(0, 1.39, -0.05);
+                saddleCloth.castShadow = true;
+                bodyGroup.add(saddleCloth);
+
+                // Schwingende Goldquasten am Saum der Decke
+                this.player.tassels = [];
+                [-0.63, 0.63].forEach(xSide => {
+                    for (let zPos = -0.42; zPos <= 0.42; zPos += 0.28) {
+                        const tasselGroup = new THREE.Group();
+                        tasselGroup.position.set(xSide, 1.15, zPos);
+                        const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.12, 6), goldMat);
+                        cord.position.y = -0.05;
+                        const pom = new THREE.Mesh(new THREE.SphereGeometry(0.065, 12, 12), goldMat);
+                        pom.scale.set(0.85, 1.25, 0.85);
+                        pom.position.y = -0.12;
+                        tasselGroup.add(cord, pom);
+                        bodyGroup.add(tasselGroup);
+                        this.player.tassels.push(tasselGroup);
+                    }
+                });
+
+                // 3. Flauschiges Schwänzchen
+                const tailPivot = new THREE.Group();
+                tailPivot.position.set(0, 1.62, -0.98);
+                const tailBase = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16), woolMat);
+                tailBase.scale.set(0.75, 1.35, 0.9);
+                tailBase.position.set(0, 0.04, -0.12);
+                tailBase.rotation.x = -0.55;
+                tailBase.castShadow = true;
+                tailPivot.add(tailBase);
+                bodyGroup.add(tailPivot);
+                this.player.tailMesh = tailPivot;
+
+                // 4. Langer Hals & ausdrucksstarker Kopf
+                const neckGroup = new THREE.Group();
+                neckGroup.position.set(0, 1.65, 0.65);
+                bodyGroup.add(neckGroup);
+                this.player.neckGroup = neckGroup;
+
+                const neckLower = new THREE.Mesh(new THREE.CylinderGeometry(0.29, 0.36, 0.75, 20), woolMat);
+                neckLower.position.set(0, 0.32, 0.04);
+                neckLower.rotation.x = 0.14;
+                neckLower.castShadow = true;
+                neckGroup.add(neckLower);
+
+                const neckUpper = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.29, 0.68, 20), woolMat);
+                neckUpper.position.set(0, 0.82, 0.11);
+                neckUpper.rotation.x = 0.08;
+                neckUpper.castShadow = true;
+                neckGroup.add(neckUpper);
+
+                const collar = new THREE.Mesh(
+                    new THREE.TorusGeometry(0.32, 0.055, 12, 24),
+                    new THREE.MeshStandardMaterial({ color: 0xbe123c, roughness: 0.5 })
+                );
+                collar.rotation.x = Math.PI * 0.5 + 0.15;
+                collar.position.set(0, 0.18, 0.03);
+                neckGroup.add(collar);
+
+                const medallion = new THREE.Mesh(new THREE.OctahedronGeometry(0.11, 1), goldMat);
+                medallion.scale.set(1, 1, 0.45);
+                medallion.position.set(0, 0.08, 0.36);
+                neckGroup.add(medallion);
+
+                const headGroup = new THREE.Group();
+                headGroup.position.set(0, 1.24, 0.15);
+                neckGroup.add(headGroup);
+                this.player.headGroup = headGroup;
+
+                const cranium = new THREE.Mesh(new THREE.SphereGeometry(0.36, 24, 20), woolMat);
+                cranium.scale.set(0.92, 0.95, 1.12);
+                cranium.castShadow = true;
+                headGroup.add(cranium);
+
+                for (let i = -1; i <= 1; i++) {
+                    const tuft = new THREE.Mesh(new THREE.SphereGeometry(0.16, 14, 14), woolMat);
+                    tuft.position.set(i * 0.11, 0.29 - Math.abs(i) * 0.03, 0.08);
+                    headGroup.add(tuft);
+                }
+
+                const snout = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.24, 0.42, 20), muzzleMat);
+                snout.rotation.x = Math.PI * 0.5 + 0.12;
+                snout.scale.set(0.92, 1.0, 0.82);
+                snout.position.set(0, -0.05, 0.38);
+                snout.castShadow = true;
+                headGroup.add(snout);
+
+                const muzzleTip = new THREE.Mesh(new THREE.SphereGeometry(0.155, 18, 16), muzzleMat);
+                muzzleTip.scale.set(0.92, 0.78, 0.85);
+                muzzleTip.position.set(0, -0.08, 0.56);
+                headGroup.add(muzzleTip);
+
+                [-0.055, 0.055].forEach(nx => {
+                    const nostril = new THREE.Mesh(new THREE.SphereGeometry(0.026, 8, 8), hoofMat);
+                    nostril.scale.set(0.7, 1.2, 0.6);
+                    nostril.position.set(nx, -0.04, 0.68);
+                    headGroup.add(nostril);
+                });
+
+                [-0.24, 0.24].forEach(xSide => {
+                    const eyeBall = new THREE.Mesh(new THREE.SphereGeometry(0.088, 20, 20), eyeMat);
+                    eyeBall.position.set(xSide, 0.06, 0.25);
+                    headGroup.add(eyeBall);
+
+                    const eyelid = new THREE.Mesh(
+                        new THREE.SphereGeometry(0.094, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.45),
+                        creamWoolMat
+                    );
+                    eyelid.rotation.x = -0.35;
+                    eyelid.position.set(xSide, 0.065, 0.25);
+                    headGroup.add(eyelid);
+
+                    const catchLight = new THREE.Mesh(
+                        new THREE.SphereGeometry(0.025, 8, 8),
+                        new THREE.MeshBasicMaterial({ color: 0xffffff })
+                    );
+                    catchLight.position.set(xSide + (xSide > 0 ? 0.032 : -0.032), 0.09, 0.325);
+                    headGroup.add(catchLight);
+                });
+
+                this.player.ears = [];
+                [-0.20, 0.20].forEach((xSide, idx) => {
+                    const earPivot = new THREE.Group();
+                    earPivot.position.set(xSide, 0.26, -0.06);
+                    earPivot.rotation.z = idx === 0 ? 0.22 : -0.22;
+                    earPivot.rotation.x = 0.1;
+
+                    const earMesh = new THREE.Mesh(new THREE.ConeGeometry(0.095, 0.54, 16), woolMat);
+                    earMesh.scale.set(0.75, 1.0, 0.65);
+                    earMesh.position.y = 0.24;
+                    earMesh.castShadow = true;
+                    earPivot.add(earMesh);
+
+                    const earInner = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.38, 12), pinkMat);
+                    earInner.scale.set(0.7, 1.0, 0.3);
+                    earInner.position.set(0, 0.22, 0.04);
+                    earPivot.add(earInner);
+
+                    headGroup.add(earPivot);
+                    this.player.ears.push(earPivot);
+                });
+
+                // 5. Vier animierte Beine mit gespaltenen Hufen
+                const legPositions = [
+                    { x: -0.32, z:  0.54 },
+                    { x:  0.32, z:  0.54 },
+                    { x: -0.32, z: -0.56 },
+                    { x:  0.32, z: -0.56 }
+                ];
+
+                this.player.legs = [];
+                legPositions.forEach(pos => {
+                    const hipPivot = new THREE.Group();
+                    hipPivot.position.set(pos.x, 1.02, pos.z);
+
+                    const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.18, 0.48, 16), woolMat);
+                    thigh.position.y = -0.22;
+                    thigh.castShadow = true;
+                    hipPivot.add(thigh);
+
+                    const knee = new THREE.Mesh(new THREE.SphereGeometry(0.13, 14, 14), creamWoolMat);
+                    knee.position.y = -0.46;
+                    hipPivot.add(knee);
+
+                    const shin = new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.12, 0.44, 14), creamWoolMat);
+                    shin.position.y = -0.68;
+                    shin.castShadow = true;
+                    hipPivot.add(shin);
+
+                    const hoofGroup = new THREE.Group();
+                    hoofGroup.position.set(0, -0.94, 0.03);
+                    [-0.045, 0.045].forEach(hx => {
+                        const toe = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.06, 0.14, 10), hoofMat);
+                        toe.scale.set(0.85, 1.0, 1.35);
+                        toe.position.set(hx, 0, 0);
+                        toe.castShadow = true;
+                        hoofGroup.add(toe);
+                    });
+                    hipPivot.add(hoofGroup);
+
+                    llamaGroup.add(hipPivot);
+                    this.player.legs.push(hipPivot);
+                });
+
+                this.player.group = llamaGroup;
+                this.player.bodyGroup = bodyGroup;
+                this.scene.add(llamaGroup);
+            }
+
+            /**
+             * Leert die aktuelle Welt und baut Umgebung + PBR-Beleuchtung für Welt 1, 2 oder 3
+             */
+            buildWorld(worldNumber) {
+                this.currentWorld = worldNumber;
+                this.interactables = [];
+                this.animatedObjects = [];
+                this.particles = [];
+                this.activeInteractable = null;
+                this.waterMesh = null;
+                this.instancedGrass = null;
+                this.chestGroup = null;
+
+                while (this.worldGroup.children.length > 0) {
+                    const child = this.worldGroup.children[0];
+                    this.worldGroup.remove(child);
+                }
+
+                // Dynamische HDR-Environment-Map für realistische PBR-Reflexionen backen
+                const envTex = TextureFactory.createEnvMapTexture(worldNumber);
+                const envRT = this.pmremGenerator.fromEquirectangular(envTex);
+                this.scene.environment = envRT.texture;
+                envTex.dispose();
+
+                if (worldNumber === 1) {
+                    this.skyUniforms.topColor.value.setHex(0x1e1b4b);
+                    this.skyUniforms.midColor.value.setHex(0xbe185d);
+                    this.skyUniforms.horizonColor.value.setHex(0xf97316);
+                    this.skyUniforms.sunPosition.value.set(-38, 16, -95);
+                    this.skyUniforms.starIntensity.value = 0.25;
+
+                    this.scene.fog.color.setHex(0x6b21a8);
+                    this.sunLight.color.setHex(0xffb366);
+                    this.sunLight.intensity = 3.8;
+                    this.buildWorld1Meadow();
+                } else if (worldNumber === 2) {
+                    this.skyUniforms.topColor.value.setHex(0x0f172a);
+                    this.skyUniforms.midColor.value.setHex(0x7c2d12);
+                    this.skyUniforms.horizonColor.value.setHex(0xea580c);
+                    this.skyUniforms.sunPosition.value.set(0, 10, -95);
+                    this.skyUniforms.starIntensity.value = 0.55;
+
+                    this.scene.fog.color.setHex(0x431407);
+                    this.sunLight.color.setHex(0xf97316);
+                    this.sunLight.intensity = 3.4;
+                    this.buildWorld2Canyon();
+                } else if (worldNumber === 3) {
+                    this.skyUniforms.topColor.value.setHex(0x030712);
+                    this.skyUniforms.midColor.value.setHex(0x31104b);
+                    this.skyUniforms.horizonColor.value.setHex(0xd97706);
+                    this.skyUniforms.sunPosition.value.set(35, 4, -95);
+                    this.skyUniforms.starIntensity.value = 1.0;
+
+                    this.scene.fog.color.setHex(0x1e1b4b);
+                    this.sunLight.color.setHex(0xc084fc);
+                    this.sunLight.intensity = 2.8;
+                    this.buildWorld3Summit();
+                }
+
+                this.createDistantMountainRing(worldNumber);
+                this.updateHUD();
+                this.updateClueNotebook();
+            }
+
+            /**
+             * Erzeugt einen majestätischen 360°-Gebirgskranz am Horizont
+             */
+            createDistantMountainRing(worldNumber) {
+                const pbrKey = worldNumber === 2 ? 'sandstone' : (worldNumber === 3 ? 'slate' : 'granite');
+                const rockPBR = TextureFactory.getPBRSet(pbrKey, 4, 4);
+                const mtMat = new THREE.MeshStandardMaterial({
+                    map: rockPBR.map,
+                    bumpMap: rockPBR.bumpMap,
+                    bumpScale: 0.4,
+                    roughnessMap: rockPBR.roughnessMap,
+                    roughness: 0.9
+                });
+
+                const peakCount = 28;
+                for (let i = 0; i < peakCount; i++) {
+                    const angle = (i / peakCount) * Math.PI * 2;
+                    if (Math.abs(Math.sin(angle) + 1) < 0.08) continue;
+
+                    const dist = 115 + (i % 3) * 18;
+                    const h = 28 + noiseGen.periodicNoise2D(i * 1.7, worldNumber * 3.1, 32) * 38;
+                    const r = 22 + (i % 4) * 6;
+
+                    const mtGeo = new THREE.ConeGeometry(r, h, 9, 4);
+                    const pos = mtGeo.attributes.position;
+                    for (let v = 0; v < pos.count; v++) {
+                        const vx = pos.getX(v);
+                        const vy = pos.getY(v);
+                        const vz = pos.getZ(v);
+                        const n = noiseGen.terrainFBM(vx * 0.08 + i, vz * 0.08, 2);
+                        pos.setX(v, vx + (n - 0.5) * 4.5);
+                        pos.setZ(v, vz + (n - 0.5) * 4.5);
+                    }
+                    mtGeo.computeVertexNormals();
+
+                    const mtMesh = new THREE.Mesh(mtGeo, mtMat);
+                    mtMesh.position.set(Math.cos(angle) * dist, h * 0.35 - 12, Math.sin(angle) * dist);
+                    mtMesh.rotation.y = i;
+                    this.worldGroup.add(mtMesh);
+                }
+            }
+
+            /**
+             * Erzeugt das mit FBM-Noise skulpturierte Insel-Terrain mit nahtlosen PBR-Texturen
+             */
+            createSculptedIslandTerrain(pbrType) {
+                const pbr = TextureFactory.getPBRSet(pbrType, 7, 7);
+                const rockPBR = TextureFactory.getPBRSet('granite', 5, 5);
+
+                const topGeo = new THREE.CylinderGeometry(17.5, 19.2, 2.6, 64, 18);
+                const pos = topGeo.attributes.position;
+                for (let i = 0; i < pos.count; i++) {
+                    let vx = pos.getX(i);
+                    let vy = pos.getY(i);
+                    let vz = pos.getZ(i);
+
+                    if (vy > 0) {
+                        vy = 1.3 + this.getTerrainHeight(vx, vz, this.currentWorld);
+                    } else {
+                        const crag = noiseGen.terrainFBM(vx * 0.16, vz * 0.16, 3);
+                        vx *= 0.88 + crag * 0.22;
+                        vz *= 0.88 + crag * 0.22;
+                    }
+                    pos.setXYZ(i, vx, vy, vz);
+                }
+                topGeo.computeVertexNormals();
+
+                const topMat = new THREE.MeshStandardMaterial({
+                    map: pbr.map,
+                    bumpMap: pbr.bumpMap,
+                    bumpScale: 0.22,
+                    roughnessMap: pbr.roughnessMap,
+                    roughness: 0.88,
+                    metalness: 0.04
+                });
+                const terrainMesh = new THREE.Mesh(topGeo, topMat);
+                terrainMesh.position.y = -1.3;
+                terrainMesh.receiveShadow = true;
+                this.worldGroup.add(terrainMesh);
+
+                // Felsiger Unterbau
+                const baseGeo = new THREE.ConeGeometry(18.5, 14, 32, 8);
+                const bPos = baseGeo.attributes.position;
+                for (let i = 0; i < bPos.count; i++) {
+                    const bx = bPos.getX(i);
+                    const bz = bPos.getZ(i);
+                    const n = noiseGen.terrainFBM(bx * 0.15, bz * 0.15, 3);
+                    bPos.setX(i, bx * (0.85 + n * 0.3));
+                    bPos.setZ(i, bz * (0.85 + n * 0.3));
+                }
+                baseGeo.computeVertexNormals();
+
+                const baseRock = new THREE.Mesh(
+                    baseGeo,
+                    new THREE.MeshStandardMaterial({
+                        map: rockPBR.map,
+                        bumpMap: rockPBR.bumpMap,
+                        bumpScale: 0.38,
+                        roughnessMap: rockPBR.roughnessMap,
+                        roughness: 0.9
+                    })
+                );
+                baseRock.position.y = -9.2;
+                baseRock.rotation.x = Math.PI;
+                this.worldGroup.add(baseRock);
+            }
+
+            /**
+             * Erzeugt das realistisch reflektierende, animierte Wasser
+             */
+            createReflectiveWater(yLevel, colorHex) {
+                const waterPBR = TextureFactory.getPBRSet('water', 10, 10);
+                const waterGeo = new THREE.CircleGeometry(145, 64);
+                const waterMat = new THREE.MeshPhysicalMaterial({
+                    color: colorHex,
+                    roughness: 0.06,
+                    metalness: 0.12,
+                    clearcoat: 1.0,
+                    clearcoatRoughness: 0.04,
+                    bumpMap: waterPBR.bumpMap,
+                    bumpScale: 0.08,
+                    reflectivity: 0.95
+                });
+                const water = new THREE.Mesh(waterGeo, waterMat);
+                water.rotation.x = -Math.PI * 0.5;
+                water.position.y = yLevel;
+                water.receiveShadow = true;
+                this.worldGroup.add(water);
+                this.waterMesh = water;
+            }
+
+            /**
+             * ========================================================================
+             * WELT 1: DIE SCHWEBENDE WIESEN-OASE (LIEST AUS `PERSONAL_CONFIG.world1`)
+             * ========================================================================
+             */
+            buildWorld1Meadow() {
+                this.walkableBounds = { minX: -14.2, maxX: 14.2, minZ: -14.2, maxZ: 14.2 };
+                this.resetLlamaPosition(0, 9.5, Math.PI);
+
+                // 1. Organisches Wiesen-Terrain (`meadow`) + Oasen-See
+                this.createSculptedIslandTerrain('meadow');
+                this.createReflectiveWater(-1.35, 0x0d9488);
+
+                // 2. Instanced Lush Grass (2.600 Grashalme) + Wildblumen
+                this.createInstancedMeadowGrass(2600);
+
+                // 3. Naturstein-Pfad (`granite`) & Tempelstein-Material (`templeStone`)
+                const granitePBR = TextureFactory.getPBRSet('granite', 3, 3);
+                const templePBR = TextureFactory.getPBRSet('templeStone', 2, 2);
+
+                const stoneMat = new THREE.MeshStandardMaterial({
+                    map: granitePBR.map,
+                    bumpMap: granitePBR.bumpMap,
+                    bumpScale: 0.18,
+                    roughnessMap: granitePBR.roughnessMap,
+                    roughness: 0.82
+                });
+
+                const templeMat = new THREE.MeshStandardMaterial({
+                    map: templePBR.map,
+                    bumpMap: templePBR.bumpMap,
+                    bumpScale: 0.16,
+                    roughnessMap: templePBR.roughnessMap,
+                    roughness: 0.72
+                });
+
+                for (let i = 0; i < 9; i++) {
+                    const pz = 8.5 - i * 1.9;
+                    const px = Math.sin(i * 0.65) * 0.55;
+                    const py = this.getTerrainHeight(px, pz, 1);
+                    const stone = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 1.15, 0.16, 12), stoneMat);
+                    stone.scale.set(1.1, 1.0, 0.82);
+                    stone.position.set(px, py + 0.04, pz);
+                    stone.rotation.y = i * 0.4;
+                    stone.receiveShadow = true;
+                    this.worldGroup.add(stone);
+                }
+
+                // 4. Realistische Laubbäume (`bark` + Laub) & Uferfelsen
+                const treeCoords = [
+                    [-10.8, -7.8], [-11.8, 2.8], [-9.2, 9.8],
+                    [10.8, -7.8],  [11.8, 3.4],  [9.2, 9.8],
+                    [-6.5, -11.5], [6.5, -11.5]
+                ];
+                treeCoords.forEach(([tx, tz], i) => {
+                    const ty = this.getTerrainHeight(tx, tz, 1);
+                    this.createRealisticTree(this.worldGroup, tx, ty, tz, 0.92 + (i % 3) * 0.18);
+                });
+
+                for (let i = 0; i < 14; i++) {
+                    const ang = (i / 14) * Math.PI * 2 + 0.2;
+                    const rad = 12.8 + (i % 3) * 1.1;
+                    const rx = Math.cos(ang) * rad;
+                    const rz = Math.sin(ang) * rad;
+                    const ry = this.getTerrainHeight(rx, rz, 1);
+                    const boulder = new THREE.Mesh(new THREE.DodecahedronGeometry(0.75 + (i % 3) * 0.35, 1), stoneMat);
+                    boulder.scale.set(1.2, 0.75, 1.0);
+                    boulder.position.set(rx, ry + 0.2, rz);
+                    boulder.rotation.set(i, i * 0.7, 0);
+                    boulder.castShadow = true;
+                    boulder.receiveShadow = true;
+                    this.worldGroup.add(boulder);
+                }
+
+                // 5. Die 3 Hinweis-Steintafeln (dynamisch aus `PERSONAL_CONFIG.world1.hints`)
+                const monolithPositions = [
+                    { x: -8.2, z: 3.5, rotY: 0.45, data: PERSONAL_CONFIG.world1.hints[0] },
+                    { x:  0.0, z: 4.5, rotY: 0.0,  data: PERSONAL_CONFIG.world1.hints[1] },
+                    { x:  8.2, z: 3.5, rotY: -0.45, data: PERSONAL_CONFIG.world1.hints[2] }
+                ];
+
+                monolithPositions.forEach((mp) => {
+                    if (!mp.data) return;
+                    const my = this.getTerrainHeight(mp.x, mp.z, 1);
+                    const monoGroup = new THREE.Group();
+                    monoGroup.position.set(mp.x, my, mp.z);
+                    monoGroup.rotation.y = mp.rotY;
+
+                    const base = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.42, 1.15), templeMat);
+                    base.position.y = 0.21;
+                    base.castShadow = true;
+                    monoGroup.add(base);
+
+                    const slab = new THREE.Mesh(new THREE.BoxGeometry(1.32, 2.25, 0.46), templeMat);
+                    slab.position.y = 1.42;
+                    slab.castShadow = true;
+                    monoGroup.add(slab);
+
+                    const glyph = new THREE.Mesh(
+                        new THREE.BoxGeometry(0.96, 1.45, 0.50),
+                        new THREE.MeshStandardMaterial({
+                            color: 0xfde68a,
+                            emissive: 0xf59e0b,
+                            emissiveIntensity: 0.75,
+                            roughness: 0.25,
+                            metalness: 0.7
+                        })
+                    );
+                    glyph.position.y = 1.46;
+                    monoGroup.add(glyph);
+
+                    const glow = TextureFactory.createGlowSprite(0xfbbf24, 2.2, 0.45);
+                    glow.position.set(0, 1.5, 0.35);
+                    monoGroup.add(glow);
+
+                    this.worldGroup.add(monoGroup);
+
+                    this.interactables.push({
+                        position: new THREE.Vector3(mp.x, my, mp.z),
+                        radius: 2.9,
+                        label: `📜 ${mp.data.title} lesen`,
+                        onInteract: () => {
+                            sound.playInteract();
+                            this.showToast(mp.data.title, mp.data.text, 6500);
+                        }
+                    });
+                });
+
+                // 6. Die 3 Harmonischen Runen-Sockel im Norden
+                const pedestalX = [-5.2, 0, 5.2];
+                const pedestalNames = ['Linker Runen-Sockel', 'Mittlerer Runen-Sockel', 'Rechter Runen-Sockel'];
+                this.puzzle1PedestalMeshes = [];
+
+                const goldHammeredMat = new THREE.MeshStandardMaterial({
+                    color: 0xfbbf24,
+                    metalness: 0.85,
+                    roughness: 0.22,
+                    bumpMap: templePBR.bumpMap,
+                    bumpScale: 0.03
+                });
+
+                pedestalX.forEach((px, idx) => {
+                    const py = this.getTerrainHeight(px, -4.2, 1);
+                    const pedGroup = new THREE.Group();
+                    pedGroup.position.set(px, py, -4.2);
+
+                    const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.88, 1.08, 1.55, 16), templeMat);
+                    pillar.position.y = 0.77;
+                    pillar.castShadow = true;
+                    pillar.receiveShadow = true;
+                    pedGroup.add(pillar);
+
+                    const goldRim = new THREE.Mesh(new THREE.CylinderGeometry(0.98, 0.98, 0.18, 16), goldHammeredMat);
+                    goldRim.position.y = 1.54;
+                    pedGroup.add(goldRim);
+
+                    const symbols = PERSONAL_CONFIG.world1.symbols;
+                    const currentSym = symbols[this.puzzle1State[idx] % symbols.length];
+                    const runeCubeMat = new THREE.MeshStandardMaterial({
+                        map: TextureFactory.createRuneTexture(currentSym),
+                        bumpMap: templePBR.bumpMap,
+                        bumpScale: 0.04,
+                        roughness: 0.28,
+                        metalness: 0.25,
+                        emissive: currentSym.hex,
+                        emissiveIntensity: 0.22
+                    });
+                    const runeCube = new THREE.Mesh(new THREE.BoxGeometry(1.18, 1.18, 1.18), runeCubeMat);
+                    runeCube.position.y = 2.58;
+                    runeCube.castShadow = true;
+                    pedGroup.add(runeCube);
+
+                    const topGem = new THREE.Mesh(
+                        new THREE.OctahedronGeometry(0.30, 0),
+                        new THREE.MeshPhysicalMaterial({
+                            color: currentSym.hex,
+                            emissive: currentSym.hex,
+                            emissiveIntensity: 0.95,
+                            roughness: 0.1,
+                            clearcoat: 1.0
+                        })
+                    );
+                    topGem.position.y = 3.6;
+                    pedGroup.add(topGem);
+
+                    const gemGlow = TextureFactory.createGlowSprite(currentSym.hex, 2.0, 0.6);
+                    gemGlow.position.y = 3.6;
+                    pedGroup.add(gemGlow);
+
+                    this.worldGroup.add(pedGroup);
+                    this.puzzle1PedestalMeshes.push({ cube: runeCube, gem: topGem, glow: gemGlow });
+
+                    this.interactables.push({
+                        position: new THREE.Vector3(px, py, -4.2),
+                        radius: 2.9,
+                        label: `🔄 ${pedestalNames[idx]} drehen`,
+                        onInteract: () => this.rotateWorld1Pedestal(idx)
+                    });
+                });
+
+                this.createAmbientParticles(55, 0xfef08a, 15);
+
+                if (this.puzzle1Solved) {
+                    this.spawnWorldPortal(0, -10.5, 2, '✨ In die Dämmerungs-Schlucht teleportieren (Welt 2)');
+                }
+            }
+
+            /**
+             * Erzeugt 2.600 einzelne 3D-Grashalme via THREE.InstancedMesh
+             */
+            createInstancedMeadowGrass(count) {
+                const bladeGeo = new THREE.ConeGeometry(0.055, 0.44, 4);
+                bladeGeo.translate(0, 0.22, 0);
+                const grassMat = new THREE.MeshStandardMaterial({
+                    color: 0x22c55e,
+                    roughness: 0.65,
+                    metalness: 0.05
+                });
+
+                const instMesh = new THREE.InstancedMesh(bladeGeo, grassMat, count);
+                instMesh.receiveShadow = true;
+
+                this.grassMatrices = [];
+                const dummy = new THREE.Object3D();
+                let placed = 0;
+
+                for (let i = 0; i < count * 2 && placed < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const rad = 1.6 + Math.sqrt(Math.random()) * 12.2;
+                    const gx = Math.cos(angle) * rad;
+                    const gz = Math.sin(angle) * rad;
+
+                    if (Math.abs(gx) < 1.35 && gz > -5 && gz < 9) continue;
+
+                    const gy = this.getTerrainHeight(gx, gz, 1);
+                    const scaleY = 0.65 + Math.random() * 0.85;
+                    const rotY = Math.random() * Math.PI * 2;
+
+                    dummy.position.set(gx, gy - 0.03, gz);
+                    dummy.rotation.set(0, rotY, 0);
+                    dummy.scale.set(1, scaleY, 1);
+                    dummy.updateMatrix();
+                    instMesh.setMatrixAt(placed, dummy.matrix);
+
+                    const c = new THREE.Color().setHSL(0.28 + (Math.random() - 0.5) * 0.08, 0.68, 0.30 + Math.random() * 0.18);
+                    instMesh.setColorAt(placed, c);
+
+                    this.grassMatrices.push({ x: gx, y: gy - 0.03, z: gz, rotY, scaleY, phase: gx * 0.4 + gz * 0.4 });
+                    placed++;
+                }
+
+                instMesh.instanceMatrix.needsUpdate = true;
+                if (instMesh.instanceColor) instMesh.instanceColor.needsUpdate = true;
+                this.worldGroup.add(instMesh);
+                this.instancedGrass = instMesh;
+            }
+
+            /**
+             * Erzeugt einen realistischen, knorrigen Baum mit `bark`-PBR-Textur
+             */
+            createRealisticTree(parent, x, y, z, scale = 1) {
+                const tree = new THREE.Group();
+                tree.position.set(x, y, z);
+                tree.scale.set(scale, scale, scale);
+
+                const barkPBR = TextureFactory.getPBRSet('bark', 2, 2);
+                const meadowPBR = TextureFactory.getPBRSet('meadow', 3, 3);
+
+                const trunkMat = new THREE.MeshStandardMaterial({
+                    map: barkPBR.map,
+                    bumpMap: barkPBR.bumpMap,
+                    bumpScale: 0.2,
+                    roughnessMap: barkPBR.roughnessMap,
+                    roughness: 0.92
+                });
+
+                const lowerTrunk = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.46, 1.6, 12), trunkMat);
+                lowerTrunk.position.y = 0.75;
+                lowerTrunk.rotation.z = 0.04;
+                lowerTrunk.castShadow = true;
+                lowerTrunk.receiveShadow = true;
+                tree.add(lowerTrunk);
+
+                const upperTrunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.28, 1.4, 10), trunkMat);
+                upperTrunk.position.set(0.06, 2.0, 0);
+                upperTrunk.rotation.z = -0.06;
+                upperTrunk.castShadow = true;
+                tree.add(upperTrunk);
+
+                const canopyClusters = [
+                    { x: 0.0,  y: 3.4, z: 0.0,  r: 1.45, col: 0x15803d },
+                    { x: -0.9, y: 2.8, z: 0.5,  r: 1.05, col: 0x16a34a },
+                    { x: 0.95, y: 2.9, z: -0.4, r: 1.12, col: 0x15803d },
+                    { x: 0.2,  y: 2.7, z: 0.9,  r: 0.98, col: 0x22c55e },
+                    { x: -0.3, y: 3.9, z: -0.3, r: 1.10, col: 0x4ade80 }
+                ];
+
+                canopyClusters.forEach((cl, idx) => {
+                    const leafGeo = new THREE.IcosahedronGeometry(cl.r, 2);
+                    const lPos = leafGeo.attributes.position;
+                    for (let i = 0; i < lPos.count; i++) {
+                        const lx = lPos.getX(i);
+                        const ly = lPos.getY(i);
+                        const lz = lPos.getZ(i);
+                        const n = noiseGen.terrainFBM(lx * 1.2 + idx, lz * 1.2, 2);
+                        const factor = 0.84 + n * 0.32;
+                        lPos.setXYZ(i, lx * factor, ly * factor * 0.82, lz * factor);
+                    }
+                    leafGeo.computeVertexNormals();
+
+                    const leafMat = new THREE.MeshStandardMaterial({
+                        color: cl.col,
+                        bumpMap: meadowPBR.bumpMap,
+                        bumpScale: 0.08,
+                        roughness: 0.78
+                    });
+                    const clusterMesh = new THREE.Mesh(leafGeo, leafMat);
+                    clusterMesh.position.set(cl.x, cl.y, cl.z);
+                    clusterMesh.castShadow = true;
+                    clusterMesh.receiveShadow = true;
+                    tree.add(clusterMesh);
+                });
+
+                parent.add(tree);
+            }
+
+            /**
+             * Logik für Rätsel 1: Gekoppelte Runen-Sockel drehen & gegen `PERSONAL_CONFIG.world1.targetState` prüfen
+             */
+            rotateWorld1Pedestal(pedestalIndex) {
+                if (this.puzzle1Solved) {
+                    this.showToast('Harmonie bereits erreicht', 'Das Portal im Norden ist bereits geöffnet! Schreite hindurch.', 3500);
+                    return;
+                }
+
+                const numSymbols = PERSONAL_CONFIG.world1.symbols.length;
+                if (pedestalIndex === 0) {
+                    this.puzzle1State[0] = (this.puzzle1State[0] + 1) % numSymbols;
+                    this.puzzle1State[1] = (this.puzzle1State[1] + 1) % numSymbols;
+                } else if (pedestalIndex === 1) {
+                    this.puzzle1State[1] = (this.puzzle1State[1] + 1) % numSymbols;
+                    this.puzzle1State[2] = (this.puzzle1State[2] + 1) % numSymbols;
+                } else {
+                    this.puzzle1State[2] = (this.puzzle1State[2] + 1) % numSymbols;
+                }
+
+                sound.playRuneRotate(this.puzzle1State[pedestalIndex]);
+
+                this.puzzle1PedestalMeshes.forEach((item, idx) => {
+                    const sym = PERSONAL_CONFIG.world1.symbols[this.puzzle1State[idx] % numSymbols];
+                    item.cube.material.map = TextureFactory.createRuneTexture(sym);
+                    item.cube.material.emissive.setHex(sym.hex);
+                    item.cube.material.needsUpdate = true;
+                    item.gem.material.color.setHex(sym.hex);
+                    item.gem.material.emissive.setHex(sym.hex);
+                    if (item.glow) item.glow.material.color.setHex(sym.hex);
+                    item.cube.rotation.y += Math.PI * 0.5;
+                });
+
+                this.updateHUD();
+
+                const isMatch = this.puzzle1State.every((val, i) => val === PERSONAL_CONFIG.world1.targetState[i]);
+                if (isMatch) {
+                    this.puzzle1Solved = true;
+                    sound.playPuzzleSolved();
+                    this.updateHUD();
+                    this.showToast(
+                        '✨ Rätsel 1 gelöst: Harmonie der Runen! ✨',
+                        'Die drei Runen-Sockel leuchten im Einklang! Im Norden hat sich das goldene Portal zur 2. Welt geöffnet.',
+                        6000
+                    );
+                    this.spawnWorldPortal(0, -10.5, 2, '✨ In die Dämmerungs-Schlucht teleportieren (Welt 2)');
+                }
+            }
+
+            /**
+             * ========================================================================
+             * WELT 2: DIE DÄMMERUNGS-SCHLUCHT (LIEST AUS `PERSONAL_CONFIG.world2`)
+             * ========================================================================
+             */
+            buildWorld2Canyon() {
+                this.walkableBounds = { minX: -11.5, maxX: 11.5, minZ: -17.0, maxZ: 15.0 };
+                this.resetLlamaPosition(0, 12.2, Math.PI);
+                this.puzzle2ProgressRow = 0;
+
+                const sandPBR = TextureFactory.getPBRSet('sandstone', 6, 6);
+                const templePBR = TextureFactory.getPBRSet('templeStone', 2, 2);
+
+                const sandMat = new THREE.MeshStandardMaterial({
+                    map: sandPBR.map,
+                    bumpMap: sandPBR.bumpMap,
+                    bumpScale: 0.3,
+                    roughnessMap: sandPBR.roughnessMap,
+                    roughness: 0.86
+                });
+                const ruinMat = new THREE.MeshStandardMaterial({
+                    color: 0xfed7aa,
+                    map: templePBR.map,
+                    bumpMap: templePBR.bumpMap,
+                    bumpScale: 0.16,
+                    roughnessMap: templePBR.roughnessMap,
+                    roughness: 0.72
+                });
+
+                const southPlatform = new THREE.Mesh(new THREE.BoxGeometry(26, 8, 10.5), sandMat);
+                southPlatform.position.set(0, -4, 11.5);
+                southPlatform.receiveShadow = true;
+                this.worldGroup.add(southPlatform);
+
+                const northPlatform = new THREE.Mesh(new THREE.BoxGeometry(26, 8, 9.5), sandMat);
+                northPlatform.position.set(0, -4, -13.2);
+                northPlatform.receiveShadow = true;
+                this.worldGroup.add(northPlatform);
+
+                // Glühender Bernsteinstrom tief unten in der Schlucht
+                this.createReflectiveWater(-3.4, 0xea580c);
+
+                // Organisch zerklüftete Canyon-Steilwände links und rechts
+                [-14.8, 14.8].forEach((xSide, sIdx) => {
+                    for (let z = -18; z <= 18; z += 5.2) {
+                        const h = 6.5 + noiseGen.terrainFBM(xSide * 0.2, z * 0.2, 3) * 8.5;
+                        const cliffGeo = new THREE.DodecahedronGeometry(4.2, 2);
+                        const cPos = cliffGeo.attributes.position;
+                        for (let i = 0; i < cPos.count; i++) {
+                            const cx = cPos.getX(i);
+                            const cy = cPos.getY(i);
+                            const cz = cPos.getZ(i);
+                            const n = noiseGen.terrainFBM(cx * 0.3 + z, cz * 0.3, 2);
+                            cPos.setXYZ(i, cx * (0.9 + n * 0.3), cy * (h / 5.5), cz * 0.95);
+                        }
+                        cliffGeo.computeVertexNormals();
+                        const cliff = new THREE.Mesh(cliffGeo, sandMat);
+                        cliff.position.set(xSide + (sIdx === 0 ? -1 : 1), h * 0.32 - 2, z);
+                        cliff.castShadow = true;
+                        cliff.receiveShadow = true;
+                        this.worldGroup.add(cliff);
+                    }
+                });
+
+                // Antike Tempelsäulen & warme Feuer-Laternen mit Glow-Sprites
+                const lanternPositions = [
+                    [-8.5, 8.5], [8.5, 8.5], [-8.5, -10.2], [8.5, -10.2]
+                ];
+                lanternPositions.forEach(([lx, lz]) => {
+                    const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.72, 4.2, 16), ruinMat);
+                    pillar.position.set(lx, 2.1, lz);
+                    pillar.castShadow = true;
+                    pillar.receiveShadow = true;
+                    this.worldGroup.add(pillar);
+
+                    const brazier = new THREE.Mesh(
+                        new THREE.SphereGeometry(0.42, 16, 16),
+                        new THREE.MeshStandardMaterial({
+                            color: 0xfef08a,
+                            emissive: 0xf97316,
+                            emissiveIntensity: 1.8
+                        })
+                    );
+                    brazier.position.set(lx, 4.45, lz);
+                    this.worldGroup.add(brazier);
+
+                    const fireGlow = TextureFactory.createGlowSprite(0xf97316, 3.4, 0.75);
+                    fireGlow.position.set(lx, 4.5, lz);
+                    this.worldGroup.add(fireGlow);
+
+                    const ptLight = new THREE.PointLight(0xff9933, 6.5, 16);
+                    ptLight.position.set(lx, 4.8, lz);
+                    this.worldGroup.add(ptLight);
+                });
+
+                // Die 2 Hinweis-Obelisken auf dem Start-Plateau (aus `PERSONAL_CONFIG.world2.hints`)
+                const obeliskConfigs = [
+                    { x: -5.4, z: 9.4, data: PERSONAL_CONFIG.world2.hints[0] },
+                    { x:  5.4, z: 9.4, data: PERSONAL_CONFIG.world2.hints[1] }
+                ];
+                obeliskConfigs.forEach(ob => {
+                    if (!ob.data) return;
+                    const obGroup = new THREE.Group();
+                    obGroup.position.set(ob.x, 0, ob.z);
+
+                    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.88, 3.3, 4), ruinMat);
+                    shaft.position.y = 1.65;
+                    shaft.rotation.y = Math.PI / 4;
+                    shaft.castShadow = true;
+                    obGroup.add(shaft);
+
+                    const cap = new THREE.Mesh(
+                        new THREE.ConeGeometry(0.65, 0.85, 4),
+                        new THREE.MeshStandardMaterial({
+                            color: 0xfbbf24,
+                            emissive: 0xd97706,
+                            emissiveIntensity: 0.8,
+                            metalness: 0.8,
+                            roughness: 0.2
+                        })
+                    );
+                    cap.position.y = 3.7;
+                    cap.rotation.y = Math.PI / 4;
+                    obGroup.add(cap);
+
+                    const obGlow = TextureFactory.createGlowSprite(0xfbbf24, 2.2, 0.55);
+                    obGlow.position.y = 3.7;
+                    obGroup.add(obGlow);
+
+                    this.worldGroup.add(obGroup);
+                    this.interactables.push({
+                        position: new THREE.Vector3(ob.x, 0, ob.z),
+                        radius: 2.9,
+                        label: `🏛️ ${ob.data.title} studieren`,
+                        onInteract: () => {
+                            sound.playInteract();
+                            this.showToast(ob.data.title, ob.data.text, 6500);
+                        }
+                    });
+                });
+
+                // Das 5x4 Raster der magischen Trittsteine (dynamisch aus `PERSONAL_CONFIG.world2.gridNumbers`)
+                this.puzzle2Tiles = [];
+                const rowZ = [4.6, 1.8, -1.0, -3.8, -6.6];
+                const colX = [-4.5, -1.5, 1.5, 4.5];
+
+                for (let r = 0; r < 5; r++) {
+                    const rowArr = [];
+                    const targetValForRow = PERSONAL_CONFIG.world2.solutionPath[r];
+                    for (let c = 0; c < 4; c++) {
+                        const num = PERSONAL_CONFIG.world2.gridNumbers[r][c];
+                        const isAlreadySolved = this.puzzle2Solved && (num === targetValForRow);
+                        const tileMat = new THREE.MeshStandardMaterial({
+                            map: TextureFactory.createNumberTileTexture(num, isAlreadySolved ? 'active' : 'normal'),
+                            bumpMap: templePBR.bumpMap,
+                            bumpScale: 0.08,
+                            roughness: 0.38,
+                            metalness: 0.22
+                        });
+                        const tileMesh = new THREE.Mesh(new THREE.BoxGeometry(2.38, 0.48, 2.18), tileMat);
+                        tileMesh.position.set(colX[c], -0.14, rowZ[r]);
+                        tileMesh.castShadow = true;
+                        tileMesh.receiveShadow = true;
+                        this.worldGroup.add(tileMesh);
+
+                        rowArr.push({
+                            mesh: tileMesh,
+                            row: r,
+                            col: c,
+                            num: num,
+                            activated: isAlreadySolved
+                        });
+                    }
+                    this.puzzle2Tiles.push(rowArr);
+                }
+
+                this.createAmbientParticles(65, 0xfdba74, 16);
+
+                if (this.puzzle2Solved) {
+                    this.spawnWorldPortal(0, -14.2, 3, '✨ Zum Sternenhimmel-Gipfel teleportieren (Welt 3)');
+                }
+            }
+
+            /**
+             * Prüft im Render-Loop dynamisch gegen `PERSONAL_CONFIG.world2.solutionPath`,
+             * auf welche Bodenplatte das Lama in Welt 2 tritt.
+             */
+            checkWorld2SteppingStones(dt) {
+                if (this.currentWorld !== 2 || this.puzzle2Solved) return;
+                if (this.puzzle2Cooldown > 0) {
+                    this.puzzle2Cooldown -= dt;
+                    return;
+                }
+
+                const px = this.player.group.position.x;
+                const pz = this.player.group.position.z;
+
+                for (let r = 0; r < 5; r++) {
+                    for (let c = 0; c < 4; c++) {
+                        const tile = this.puzzle2Tiles[r][c];
+                        const dx = Math.abs(px - tile.mesh.position.x);
+                        const dz = Math.abs(pz - tile.mesh.position.z);
+
+                        if (dx < 1.08 && dz < 0.98 && this.player.group.position.y < 0.65) {
+                            if (tile.activated) return;
+
+                            const expectedValue = PERSONAL_CONFIG.world2.solutionPath[r];
+                            if (r === this.puzzle2ProgressRow && tile.num === expectedValue) {
+                                tile.activated = true;
+                                tile.mesh.material.map = TextureFactory.createNumberTileTexture(tile.num, 'active');
+                                tile.mesh.material.emissive = new THREE.Color(0x10b981);
+                                tile.mesh.material.emissiveIntensity = 0.4;
+                                tile.mesh.position.y = 0.02;
+                                sound.playTileCorrect(r);
+
+                                this.puzzle2ProgressRow++;
+                                this.updateHUD();
+
+                                if (this.puzzle2ProgressRow >= PERSONAL_CONFIG.world2.solutionPath.length) {
+                                    this.puzzle2Solved = true;
+                                    sound.playPuzzleSolved();
+                                    this.updateHUD();
+                                    const seqStr = PERSONAL_CONFIG.world2.solutionPath.join('-');
+                                    this.showToast(
+                                        `✨ Rätsel 2 gelöst: Der Pfad (${seqStr})! ✨`,
+                                        'Die Brücke erstrahlt in vollem Glanz! Auf dem Nord-Plateau wartet das Portal zum Sternenhimmel-Gipfel.',
+                                        6000
+                                    );
+                                    this.spawnWorldPortal(0, -14.2, 3, '✨ Zum Sternenhimmel-Gipfel teleportieren (Welt 3)');
+                                }
+                            } else {
+                                this.puzzle2Cooldown = 0.9;
+                                sound.playError();
+                                tile.mesh.material.map = TextureFactory.createNumberTileTexture(tile.num, 'error');
+
+                                const seqArrow = PERSONAL_CONFIG.world2.solutionPath.join(' ➔ ');
+                                this.showToast(
+                                    '⚠️ Falsche Platte betreten!',
+                                    `Du hast die ${tile.num} betreten. Folge Reihe für Reihe dem Pfad: ${seqArrow}!`,
+                                    3800
+                                );
+
+                                setTimeout(() => {
+                                    this.resetWorld2Bridge();
+                                }, 450);
+                            }
+                            return;
+                        }
+                    }
+                }
+            }
+
+            resetWorld2Bridge() {
+                this.puzzle2ProgressRow = 0;
+                for (let r = 0; r < 5; r++) {
+                    for (let c = 0; c < 4; c++) {
+                        const t = this.puzzle2Tiles[r][c];
+                        t.activated = false;
+                        t.mesh.material.map = TextureFactory.createNumberTileTexture(t.num, 'normal');
+                        t.mesh.material.emissive = new THREE.Color(0x000000);
+                        t.mesh.position.y = -0.14;
+                    }
+                }
+                this.resetLlamaPosition(0, 7.6, Math.PI);
+                this.updateHUD();
+            }
+
+            /**
+             * ========================================================================
+             * WELT 3: DER STERNENHIMMEL-GIPFEL (LIEST AUS `PERSONAL_CONFIG.world3`)
+             * ========================================================================
+             */
+            buildWorld3Summit() {
+                this.walkableBounds = { minX: -14.2, maxX: 14.2, minZ: -14.2, maxZ: 14.2 };
+                this.resetLlamaPosition(0, 10.5, Math.PI);
+
+                // Skulpturiertes Alpenschiefer-Plateau (`slate`) + Kosmischer Spiegelsee
+                this.createSculptedIslandTerrain('slate');
+                this.createReflectiveWater(-1.45, 0x1e1b4b);
+
+                const templePBR = TextureFactory.getPBRSet('templeStone', 2, 2);
+                const stoneMat = new THREE.MeshStandardMaterial({
+                    color: 0x4338ca,
+                    map: templePBR.map,
+                    bumpMap: templePBR.bumpMap,
+                    bumpScale: 0.16,
+                    roughnessMap: templePBR.roughnessMap,
+                    roughness: 0.55,
+                    metalness: 0.25
+                });
+                const goldMat = new THREE.MeshStandardMaterial({
+                    color: 0xfbbf24,
+                    metalness: 0.88,
+                    roughness: 0.2
+                });
+
+                // Goldener Sternenkreis im Zentrum
+                const sanctumRing = new THREE.Mesh(new THREE.RingGeometry(2.6, 3.05, 48), goldMat);
+                sanctumRing.rotation.x = -Math.PI / 2;
+                sanctumRing.position.set(0, this.getTerrainHeight(0, 0.8, 3) + 0.04, 0.8);
+                this.worldGroup.add(sanctumRing);
+
+                // Lichtbrechende Riesen-Quarzkristalle rund um den Gipfel
+                const crystalColors = [0x38bdf8, 0xc084fc, 0xf472b6, 0x818cf8];
+                for (let i = 0; i < 12; i++) {
+                    const angle = (i / 12) * Math.PI * 2;
+                    if (Math.abs(angle - Math.PI / 2) < 0.35) continue;
+                    const rx = Math.cos(angle) * 12.6;
+                    const rz = Math.sin(angle) * 12.6;
+                    const ry = this.getTerrainHeight(rx, rz, 3);
+                    const cColor = crystalColors[i % crystalColors.length];
+                    this.createCrystalCluster(rx, ry, rz, cColor);
+                }
+
+                // Kristall-Monolith mit Hinweis (`PERSONAL_CONFIG.world3.monolithHint`)
+                if (PERSONAL_CONFIG.world3.monolithHint) {
+                    const mh = PERSONAL_CONFIG.world3.monolithHint;
+                    const mx = -5.6;
+                    const mz = 3.2;
+                    const my = this.getTerrainHeight(mx, mz, 3);
+
+                    const monoGroup = new THREE.Group();
+                    monoGroup.position.set(mx, my, mz);
+                    monoGroup.rotation.y = 0.5;
+
+                    const mBase = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.4, 1.1), stoneMat);
+                    mBase.position.y = 0.2;
+                    monoGroup.add(mBase);
+
+                    const mSlab = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.2, 0.45), stoneMat);
+                    mSlab.position.y = 1.4;
+                    mSlab.castShadow = true;
+                    monoGroup.add(mSlab);
+
+                    const mCrystal = new THREE.Mesh(
+                        new THREE.OctahedronGeometry(0.32, 0),
+                        new THREE.MeshPhysicalMaterial({
+                            color: 0x38bdf8,
+                            emissive: 0x0284c7,
+                            emissiveIntensity: 0.9,
+                            roughness: 0.1,
+                            clearcoat: 1.0
+                        })
+                    );
+                    mCrystal.position.y = 2.85;
+                    monoGroup.add(mCrystal);
+
+                    const mGlow = TextureFactory.createGlowSprite(0x38bdf8, 2.4, 0.6);
+                    mGlow.position.y = 2.85;
+                    monoGroup.add(mGlow);
+
+                    this.worldGroup.add(monoGroup);
+                    this.interactables.push({
+                        position: new THREE.Vector3(mx, my, mz),
+                        radius: 2.9,
+                        label: `💎 ${mh.title} lesen`,
+                        onInteract: () => {
+                            sound.playInteract();
+                            this.showToast(mh.title, mh.text, 6500);
+                        }
+                    });
+                }
+
+                // Der Antike Altar der Erinnerungen im Norden
+                const ay = this.getTerrainHeight(0, -6.8, 3);
+                const altarGroup = new THREE.Group();
+                altarGroup.position.set(0, ay, -6.8);
+
+                const altarSteps = new THREE.Mesh(new THREE.BoxGeometry(4.5, 0.52, 3.3), stoneMat);
+                altarSteps.position.y = 0.26;
+                altarSteps.receiveShadow = true;
+                altarGroup.add(altarSteps);
+
+                const altarPedestal = new THREE.Mesh(new THREE.BoxGeometry(2.5, 1.55, 1.65), stoneMat);
+                altarPedestal.position.y = 1.28;
+                altarPedestal.castShadow = true;
+                altarGroup.add(altarPedestal);
+
+                const altarCrystal = new THREE.Mesh(
+                    new THREE.OctahedronGeometry(0.78, 0),
+                    new THREE.MeshPhysicalMaterial({
+                        color: 0xfde047,
+                        emissive: 0xf59e0b,
+                        emissiveIntensity: 1.0,
+                        roughness: 0.08,
+                        clearcoat: 1.0
+                    })
+                );
+                altarCrystal.position.y = 3.0;
+                altarGroup.add(altarCrystal);
+
+                const altarGlow = TextureFactory.createGlowSprite(0xfde047, 3.8, 0.75);
+                altarGlow.position.y = 3.0;
+                altarGroup.add(altarGlow);
+
+                const altarLight = new THREE.PointLight(0xfbbf24, 6.0, 18);
+                altarLight.position.set(0, 3.3, -6.2);
+                this.worldGroup.add(altarLight);
+
+                this.worldGroup.add(altarGroup);
+                this.animatedObjects.push({
+                    mesh: altarCrystal,
+                    baseY: 3.0,
+                    speed: 2.0,
+                    phase: 0,
+                    rotate: true
+                });
+
+                this.interactables.push({
+                    position: new THREE.Vector3(0, ay, -6.2),
+                    radius: 3.4,
+                    label: '🔮 Altar der Erinnerungen öffnen (Rätsel 3)',
+                    onInteract: () => this.openAltarModal()
+                });
+
+                this.createAmbientParticles(85, 0xfde047, 16);
+
+                if (this.puzzle3Solved || this.chestSpawned) {
+                    this.spawnTreasureChest();
+                }
+            }
+
+            /**
+             * Erstellt die kunstvolle Schatztruhe mit `wood`-Edelholz-Maserung und gehämmertem Gold
+             */
+            spawnTreasureChest() {
+                if (this.chestGroup && this.chestGroup.parent) return;
+                this.chestSpawned = true;
+
+                const cy = this.getTerrainHeight(0, 0.8, 3);
+                const chestGroup = new THREE.Group();
+                chestGroup.position.set(0, cy, 0.8);
+                this.chestGroup = chestGroup;
+
+                const woodPBR = TextureFactory.getPBRSet('wood', 2, 2);
+                const templePBR = TextureFactory.getPBRSet('templeStone', 2, 2);
+
+                const woodMat = new THREE.MeshStandardMaterial({
+                    map: woodPBR.map,
+                    bumpMap: woodPBR.bumpMap,
+                    bumpScale: 0.08,
+                    roughnessMap: woodPBR.roughnessMap,
+                    roughness: 0.48,
+                    metalness: 0.08
+                });
+                const goldMat = new THREE.MeshStandardMaterial({
+                    color: 0xfbbf24,
+                    bumpMap: templePBR.bumpMap,
+                    bumpScale: 0.025,
+                    metalness: 0.88,
+                    roughness: 0.18,
+                    emissive: 0xd97706,
+                    emissiveIntensity: 0.22
+                });
+                const heartGemMat = new THREE.MeshPhysicalMaterial({
+                    color: 0xf43f5e,
+                    emissive: 0xe11d48,
+                    emissiveIntensity: 1.0,
+                    roughness: 0.05,
+                    clearcoat: 1.0
+                });
+
+                const baseBox = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.05, 1.45), woodMat);
+                baseBox.position.y = 0.525;
+                baseBox.castShadow = true;
+                chestGroup.add(baseBox);
+
+                const trimBottom = new THREE.Mesh(new THREE.BoxGeometry(2.28, 0.2, 1.52), goldMat);
+                trimBottom.position.y = 0.12;
+                chestGroup.add(trimBottom);
+
+                const trimMid = new THREE.Mesh(new THREE.BoxGeometry(2.28, 0.18, 1.52), goldMat);
+                trimMid.position.y = 0.98;
+                chestGroup.add(trimMid);
+
+                const lockPlate = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.52, 0.14), goldMat);
+                lockPlate.position.set(0, 0.95, 0.74);
+                chestGroup.add(lockPlate);
+
+                const lockGem = new THREE.Mesh(new THREE.OctahedronGeometry(0.16, 0), heartGemMat);
+                lockGem.position.set(0, 0.95, 0.82);
+                chestGroup.add(lockGem);
+
+                const lidPivot = new THREE.Group();
+                lidPivot.position.set(0, 1.05, -0.72);
+                chestGroup.add(lidPivot);
+                this.chestLidPivot = lidPivot;
+
+                const lidBox = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.55, 1.45), woodMat);
+                lidBox.position.set(0, 0.275, 0.72);
+                lidBox.castShadow = true;
+                lidPivot.add(lidBox);
+
+                const lidGoldArc = new THREE.Mesh(new THREE.BoxGeometry(2.28, 0.6, 0.28), goldMat);
+                lidGoldArc.position.set(0, 0.28, 0.72);
+                lidPivot.add(lidGoldArc);
+
+                const innerGlow = new THREE.Mesh(
+                    new THREE.BoxGeometry(1.9, 0.2, 1.15),
+                    new THREE.MeshBasicMaterial({ color: 0xfef08a })
+                );
+                innerGlow.position.set(0, 1.02, 0);
+                chestGroup.add(innerGlow);
+
+                const chestHalo = TextureFactory.createGlowSprite(0xfde047, 4.5, 0.75);
+                chestHalo.position.set(0, 1.5, 0);
+                chestGroup.add(chestHalo);
+
+                const beamGeo = new THREE.CylinderGeometry(1.35, 1.35, 18, 28, 1, true);
+                const beamMat = new THREE.MeshBasicMaterial({
+                    color: 0xfde047,
+                    transparent: true,
+                    opacity: 0.15,
+                    side: THREE.DoubleSide,
+                    depthWrite: false
+                });
+                const lightBeam = new THREE.Mesh(beamGeo, beamMat);
+                lightBeam.position.y = 9;
+                chestGroup.add(lightBeam);
+
+                const chestLight = new THREE.PointLight(0xfde047, 7.5, 16);
+                chestLight.position.set(0, 2.5, 0);
+                chestGroup.add(chestLight);
+
+                this.worldGroup.add(chestGroup);
+
+                this.interactables.push({
+                    position: new THREE.Vector3(0, cy, 0.8),
+                    radius: 3.3,
+                    label: '🎁 Goldene Jubiläums-Schatztruhe öffnen!',
+                    onInteract: () => this.openTreasureChest()
+                });
+
+                this.updateHUD();
+            }
+
+            openTreasureChest() {
+                sound.playChestFanfare();
+                this.chestOpened = true;
+
+                let progress = 0;
+                const openInterval = setInterval(() => {
+                    progress += 0.05;
+                    if (this.chestLidPivot) {
+                        this.chestLidPivot.rotation.x = -Math.min(progress * 1.35, 1.35);
+                    }
+                    if (progress >= 1) {
+                        clearInterval(openInterval);
+                        this.showVideoModal();
+                    }
+                }, 25);
+            }
+
+            /**
+             * Hilfsfunktion: Erstellt physikalisch glänzende Kristall-Cluster mit Glow-Halo für Welt 3
+             */
+            createCrystalCluster(x, y, z, hexColor) {
+                const cluster = new THREE.Group();
+                cluster.position.set(x, y, z);
+
+                const mat = new THREE.MeshPhysicalMaterial({
+                    color: hexColor,
+                    emissive: hexColor,
+                    emissiveIntensity: 0.55,
+                    roughness: 0.08,
+                    metalness: 0.15,
+                    clearcoat: 1.0
+                });
+
+                for (let i = 0; i < 4; i++) {
+                    const h = 1.5 + Math.random() * 1.6;
+                    const crystal = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.38, h, 6), mat);
+                    crystal.position.set((Math.random() - 0.5) * 0.65, h / 2, (Math.random() - 0.5) * 0.65);
+                    crystal.rotation.set((Math.random() - 0.5) * 0.4, Math.random() * Math.PI, (Math.random() - 0.5) * 0.4);
+                    crystal.castShadow = true;
+                    cluster.add(crystal);
+                }
+
+                const glow = TextureFactory.createGlowSprite(hexColor, 3.2, 0.5);
+                glow.position.y = 1.3;
+                cluster.add(glow);
+
+                this.worldGroup.add(cluster);
+            }
+
+            /**
+             * Erstellt ein magisches Teleportations-Portal zur nächsten Welt
+             */
+            spawnWorldPortal(x, z, targetWorld, labelText) {
+                const py = this.getTerrainHeight(x, z, this.currentWorld);
+                const portalGroup = new THREE.Group();
+                portalGroup.position.set(x, py, z);
+
+                const torusMat = new THREE.MeshStandardMaterial({
+                    color: 0xfbbf24,
+                    emissive: 0xf59e0b,
+                    emissiveIntensity: 0.95,
+                    roughness: 0.18,
+                    metalness: 0.85
+                });
+                const ring = new THREE.Mesh(new THREE.TorusGeometry(2.1, 0.22, 20, 48), torusMat);
+                ring.position.y = 2.3;
+                portalGroup.add(ring);
+
+                const vortexMat = new THREE.MeshBasicMaterial({
+                    color: 0xfef08a,
+                    transparent: true,
+                    opacity: 0.48,
+                    side: THREE.DoubleSide
+                });
+                const disc = new THREE.Mesh(new THREE.CircleGeometry(1.95, 36), vortexMat);
+                disc.position.y = 2.3;
+                portalGroup.add(disc);
+
+                const portalGlow = TextureFactory.createGlowSprite(0xfde047, 5.2, 0.75);
+                portalGlow.position.y = 2.3;
+                portalGroup.add(portalGlow);
+
+                const pLight = new THREE.PointLight(0xfde047, 7.0, 16);
+                pLight.position.set(0, 2.5, 0);
+                portalGroup.add(pLight);
+
+                this.worldGroup.add(portalGroup);
+                this.animatedObjects.push({
+                    mesh: ring,
+                    baseY: 2.3,
+                    speed: 1.5,
+                    phase: 0,
+                    rotateZ: true
+                });
+
+                this.interactables.push({
+                    position: new THREE.Vector3(x, py, z),
+                    radius: 3.2,
+                    label: labelText,
+                    onInteract: () => this.teleportToWorld(targetWorld)
+                });
+            }
+
+            teleportToWorld(targetWorld) {
+                if (this.isTransitioning) return;
+                this.isTransitioning = true;
+                sound.playTeleport();
+
+                const fadeEl = document.getElementById('teleport-fade');
+                fadeEl.style.opacity = '1';
+
+                this.player.velocityY = 10;
+                this.player.isGrounded = false;
+
+                setTimeout(() => {
+                    this.buildWorld(targetWorld);
+                    setTimeout(() => {
+                        fadeEl.style.opacity = '0';
+                        this.isTransitioning = false;
+                    }, 350);
+                }, 850);
+            }
+
+            createAmbientParticles(count, hexColor, spread) {
+                const mat = new THREE.MeshBasicMaterial({ color: hexColor });
+                const geo = new THREE.SphereGeometry(0.075, 8, 8);
+
+                for (let i = 0; i < count; i++) {
+                    const p = new THREE.Mesh(geo, mat);
+                    p.position.set(
+                        (Math.random() - 0.5) * spread * 2,
+                        0.6 + Math.random() * 5.5,
+                        (Math.random() - 0.5) * spread * 2
+                    );
+                    this.worldGroup.add(p);
+                    this.particles.push({
+                        mesh: p,
+                        baseY: p.position.y,
+                        speed: 0.8 + Math.random() * 1.5,
+                        phase: Math.random() * Math.PI * 2
+                    });
+                }
+            }
+
+            resetLlamaPosition(x, z, rotY = Math.PI) {
+                if (!this.player.group) return;
+                const y = Math.max(0, this.getTerrainHeight(x, z, this.currentWorld));
+                this.player.group.position.set(x, y, z);
+                this.player.group.rotation.y = rotY;
+                this.player.targetRotationY = rotY;
+                this.player.velocityY = 0;
+                this.player.isGrounded = true;
+            }
+
+            /**
+             * ========================================================================
+             * UI, HUD, HINWEIS-NOTIZBUCH & ALTAR-MODAL (DYNAMISCH AUS `PERSONAL_CONFIG`)
+             * ========================================================================
+             */
+            updateHUD() {
+                const badge = document.getElementById('hud-world-badge');
+                const title = document.getElementById('hud-world-title');
+                const obj = document.getElementById('hud-objective');
+                const status = document.getElementById('hud-puzzle-status');
+                const dots = document.getElementById('hud-progress-dots').children;
+
+                badge.textContent = `Etappe ${this.currentWorld} / 3`;
+
+                for (let i = 0; i < 3; i++) {
+                    dots[i].className = i + 1 <= this.currentWorld
+                        ? 'w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24]'
+                        : 'w-2.5 h-2.5 rounded-full bg-white/25';
+                }
+
+                document.querySelectorAll('.world-jump-btn').forEach(btn => {
+                    const w = Number(btn.getAttribute('data-goto-world'));
+                    if (w === this.currentWorld) {
+                        btn.className = 'world-jump-btn px-2.5 py-1.5 rounded-lg bg-amber-500/30 text-amber-200 font-bold transition cursor-pointer';
+                    } else {
+                        btn.className = 'world-jump-btn px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-slate-300 transition cursor-pointer';
+                    }
+                });
+
+                if (this.currentWorld === 1) {
+                    title.textContent = PERSONAL_CONFIG.world1.title;
+                    obj.textContent = this.puzzle1Solved
+                        ? PERSONAL_CONFIG.world1.objectiveSolved
+                        : PERSONAL_CONFIG.world1.objectiveUnfinished;
+
+                    const syms = PERSONAL_CONFIG.world1.symbols;
+                    const s0 = syms[this.puzzle1State[0] % syms.length];
+                    const s1 = syms[this.puzzle1State[1] % syms.length];
+                    const s2 = syms[this.puzzle1State[2] % syms.length];
+                    status.innerHTML = `
+                        <span>Aktuelle Sockel:</span>
+                        <span class="px-2 py-0.5 rounded bg-white/10">${s0.icon} ${s0.name}</span>
+                        <span class="px-2 py-0.5 rounded bg-white/10">${s1.icon} ${s1.name}</span>
+                        <span class="px-2 py-0.5 rounded bg-white/10">${s2.icon} ${s2.name}</span>
+                    `;
+                } else if (this.currentWorld === 2) {
+                    title.textContent = PERSONAL_CONFIG.world2.title;
+                    obj.textContent = this.puzzle2Solved
+                        ? PERSONAL_CONFIG.world2.objectiveSolved
+                        : PERSONAL_CONFIG.world2.objectiveUnfinished;
+                    const totalRows = PERSONAL_CONFIG.world2.solutionPath.length;
+                    status.innerHTML = `
+                        <span>Brücken-Fortschritt:</span>
+                        <span class="px-2.5 py-0.5 rounded bg-amber-500/20 text-amber-200 font-bold">${this.puzzle2Solved ? totalRows : this.puzzle2ProgressRow} / ${totalRows} Reihen aktiviert</span>
+                    `;
+                } else {
+                    title.textContent = PERSONAL_CONFIG.world3.title;
+                    obj.textContent = this.chestSpawned
+                        ? PERSONAL_CONFIG.world3.objectiveSolved
+                        : PERSONAL_CONFIG.world3.objectiveUnfinished;
+                    status.innerHTML = `
+                        <span>Status:</span>
+                        <span class="px-2.5 py-0.5 rounded bg-amber-500/20 text-amber-200 font-bold">
+                            ${this.chestSpawned ? '🎁 Schatztruhe bereit zum Öffnen!' : '🔮 Altar der Erinnerungen erwartet dich'}
+                        </span>
+                    `;
+                }
+            }
+
+            updateClueNotebook() {
+                const container = document.getElementById('clue-notebook-content');
+                if (this.currentWorld === 1) {
+                    const syms = PERSONAL_CONFIG.world1.symbols;
+                    const t0 = syms[PERSONAL_CONFIG.world1.targetState[0]];
+                    const t1 = syms[PERSONAL_CONFIG.world1.targetState[1]];
+                    const t2 = syms[PERSONAL_CONFIG.world1.targetState[2]];
+                    container.innerHTML = `
+                        <p class="font-semibold text-amber-200">${PERSONAL_CONFIG.world1.title}:</p>
+                        <ul class="list-disc pl-4 space-y-1 text-slate-300">
+                            <li><strong>Ziel-Ausrichtung:</strong> Links = ${t0.icon} ${t0.name}, Mitte = ${t1.icon} ${t1.name}, Rechts = ${t2.icon} ${t2.name}.</li>
+                            <li><strong>Mechanik:</strong> Links dreht Mitte mit. Mitte dreht Rechts mit. Rechts dreht sich allein.</li>
+                            <li><strong>Strategie:</strong> Stelle erst Links, dann Mitte und zuletzt Rechts ein!</li>
+                        </ul>
+                    `;
+                } else if (this.currentWorld === 2) {
+                    const pathStr = PERSONAL_CONFIG.world2.solutionPath.join(' ➔ ');
+                    container.innerHTML = `
+                        <p class="font-semibold text-amber-200">${PERSONAL_CONFIG.world2.title}:</p>
+                        <ul class="list-disc pl-4 space-y-1 text-slate-300">
+                            <li><strong>Sicherer Pfad (Reihe 1–5):</strong> <strong>${pathStr}</strong></li>
+                            <li><strong>Hinweis:</strong> ${PERSONAL_CONFIG.world2.hints[1] ? PERSONAL_CONFIG.world2.hints[1].text : ''}</li>
+                        </ul>
+                    `;
+                } else {
+                    const qList = PERSONAL_CONFIG.world3.questions.map((q, idx) =>
+                        `<li><strong>Siegel ${idx + 1}:</strong> ${q.acceptedAnswers[0].toUpperCase()}</li>`
+                    ).join('');
+                    container.innerHTML = `
+                        <p class="font-semibold text-amber-200">${PERSONAL_CONFIG.world3.title}:</p>
+                        <ul class="list-disc pl-4 space-y-1 text-slate-300">
+                            ${qList}
+                        </ul>
+                    `;
+                }
+            }
+
+            showToast(titleText, bodyText, duration = 4500) {
+                const banner = document.getElementById('toast-banner');
+                document.getElementById('toast-title').textContent = titleText;
+                document.getElementById('toast-text').textContent = bodyText;
+
+                banner.classList.remove('opacity-0', '-translate-y-3');
+                banner.classList.add('opacity-100', 'translate-y-0');
+
+                if (this.toastTimeout) clearTimeout(this.toastTimeout);
+                this.toastTimeout = setTimeout(() => {
+                    banner.classList.remove('opacity-100', 'translate-y-0');
+                    banner.classList.add('opacity-0', '-translate-y-3');
+                }, duration);
+            }
+
+            initAltarUI() {
+                const container = document.getElementById('altar-questions-container');
+                container.innerHTML = '';
+
+                PERSONAL_CONFIG.world3.questions.forEach((riddle, idx) => {
+                    const card = document.createElement('div');
+                    card.className = 'p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2';
+                    card.innerHTML = `
+                        <div class="flex items-center justify-between gap-2">
+                            <h4 class="font-serif-title text-sm font-bold text-amber-300">${riddle.title}</h4>
+                            <button type="button" data-hint-idx="${idx}" class="altar-hint-btn text-[11px] px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/35 text-amber-200 transition cursor-pointer">
+                                💡 Hinweis zeigen
+                            </button>
+                        </div>
+                        <p class="text-xs md:text-sm text-slate-200 leading-relaxed">${riddle.questionText}</p>
+                        <p id="altar-hint-${idx}" class="text-xs text-amber-300/90 bg-amber-500/10 border border-amber-400/25 rounded-xl px-3 py-2 hidden">
+                            ${riddle.hintText}
+                        </p>
+                        <input
+                            type="text"
+                            id="altar-input-${idx}"
+                            placeholder="${riddle.placeholder}"
+                            autocomplete="off"
+                            class="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/20 focus:border-amber-400 focus:outline-none text-sm text-white placeholder-slate-400"
+                        />
+                    `;
+                    container.appendChild(card);
+                });
+
+                container.querySelectorAll('.altar-hint-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const i = btn.getAttribute('data-hint-idx');
+                        const hintEl = document.getElementById(`altar-hint-${i}`);
+                        hintEl.classList.toggle('hidden');
+                        sound.playInteract();
+                    });
+                });
+            }
+
+            openAltarModal() {
+                sound.playInteract();
+                this.isModalOpen = true;
+                this.keys.forward = this.keys.backward = this.keys.left = this.keys.right = false;
+                document.getElementById('altar-modal').classList.remove('hidden');
+                document.getElementById('altar-feedback').textContent = '';
+            }
+
+            closeAltarModal() {
+                this.isModalOpen = false;
+                document.getElementById('altar-modal').classList.add('hidden');
+            }
+
+            checkAltarSubmission() {
+                let allCorrect = true;
+
+                PERSONAL_CONFIG.world3.questions.forEach((riddle, idx) => {
+                    const inputEl = document.getElementById(`altar-input-${idx}`);
+                    const val = (inputEl.value || '').trim().toLowerCase();
+                    const isOk = riddle.acceptedAnswers.some(ans => String(ans).trim().toLowerCase() === val);
+
+                    if (isOk) {
+                        inputEl.className = 'w-full px-4 py-2.5 rounded-xl bg-emerald-950/60 border-2 border-emerald-400 focus:outline-none text-sm text-emerald-100';
+                    } else {
+                        allCorrect = false;
+                        inputEl.className = 'w-full px-4 py-2.5 rounded-xl bg-rose-950/60 border-2 border-rose-400 focus:outline-none text-sm text-rose-100';
+                    }
+                });
+
+                const feedback = document.getElementById('altar-feedback');
+                if (allCorrect) {
+                    this.puzzle3Solved = true;
+                    sound.playPuzzleSolved();
+                    feedback.className = 'text-center text-sm font-bold text-emerald-300 mb-4';
+                    feedback.textContent = '✨ Alle drei Siegel wurden entschlüsselt! Die goldene Schatztruhe erscheint! ✨';
+
+                    setTimeout(() => {
+                        this.closeAltarModal();
+                        this.spawnTreasureChest();
+                        this.showToast(
+                            '🎁 Der Jubiläumsschatz ist erschienen!',
+                            'Im Zentrum des Sternenhimmel-Gipfels ist die goldene Schatztruhe erwacht. Lauf zu ihr und drücke [E]!',
+                            6500
+                        );
+                    }, 900);
+                } else {
+                    sound.playError();
+                    feedback.className = 'text-center text-sm font-semibold text-rose-300 mb-4';
+                    feedback.textContent = 'Noch nicht alle Siegel stimmen. Nutze bei Bedarf den „💡 Hinweis zeigen“-Button!';
+                }
+            }
+
+            showVideoModal() {
+                this.isModalOpen = true;
+                this.keys.forward = this.keys.backward = this.keys.left = this.keys.right = false;
+
+                document.getElementById('video-modal-title').textContent = PERSONAL_CONFIG.finaleTitle;
+                document.getElementById('video-modal-subtitle').textContent = PERSONAL_CONFIG.finaleSubtitle;
+                document.getElementById('video-modal').classList.remove('hidden');
+
+                const videoEl = document.getElementById('anniversary-video');
+                const fallbackEl = document.getElementById('video-fallback-overlay');
+
+                videoEl.play().then(() => {
+                    fallbackEl.classList.add('hidden');
+                }).catch(() => {
+                    if (videoEl.networkState === HTMLMediaElement.NETWORK_NO_SOURCE || videoEl.error) {
+                        fallbackEl.classList.remove('hidden');
+                    }
+                });
+            }
+
+            closeVideoModal() {
+                const videoEl = document.getElementById('anniversary-video');
+                videoEl.pause();
+                document.getElementById('video-modal').classList.add('hidden');
+                this.isModalOpen = false;
+            }
+
+            /**
+             * GitHub-Dev-Helper: Löst das Rätsel der aktuellen Welt sofort zum schnellen Testen
+             */
+            solveCurrentWorldForDev() {
+                sound.init();
+                sound.playPuzzleSolved();
+                if (this.currentWorld === 1 && !this.puzzle1Solved) {
+                    this.puzzle1State = [...PERSONAL_CONFIG.world1.targetState];
+                    this.puzzle1Solved = true;
+                    this.buildWorld(1);
+                    this.showToast('✓ Dev-Tool: Welt 1 gelöst', 'Das Portal im Norden ist nun geöffnet!', 3500);
+                } else if (this.currentWorld === 2 && !this.puzzle2Solved) {
+                    this.puzzle2Solved = true;
+                    this.puzzle2ProgressRow = 5;
+                    this.buildWorld(2);
+                    this.showToast('✓ Dev-Tool: Welt 2 gelöst', 'Das Portal auf dem Nord-Plateau ist nun geöffnet!', 3500);
+                } else if (this.currentWorld === 3) {
+                    this.puzzle3Solved = true;
+                    this.spawnTreasureChest();
+                    this.showToast('✓ Dev-Tool: Schatztruhe beschworen', 'Öffne die goldene Truhe in der Mitte mit [E]!', 3500);
+                }
+            }
+
+            /**
+             * ========================================================================
+             * EVENT LISTENER, MAUS-KAMERA-ORBIT & TASTATUR-STEUERUNG
+             * ========================================================================
+             */
+            bindEvents() {
+                window.addEventListener('resize', () => {
+                    this.camera.aspect = window.innerWidth / window.innerHeight;
+                    this.camera.updateProjectionMatrix();
+                    this.renderer.setSize(window.innerWidth, window.innerHeight);
+                });
+
+                this.canvas.addEventListener('mousedown', (e) => {
+                    this.isPointerDragging = true;
+                    this.lastPointerX = e.clientX;
+                    this.lastPointerY = e.clientY;
+                });
+                window.addEventListener('mouseup', () => {
+                    this.isPointerDragging = false;
+                });
+                window.addEventListener('mousemove', (e) => {
+                    if (!this.isPointerDragging || this.isModalOpen) return;
+                    const dx = e.clientX - this.lastPointerX;
+                    const dy = e.clientY - this.lastPointerY;
+                    this.lastPointerX = e.clientX;
+                    this.lastPointerY = e.clientY;
+
+                    this.cameraOrbitAngle -= dx * 0.0065;
+                    this.cameraPitchOffset = THREE.MathUtils.clamp(this.cameraPitchOffset + dy * 0.035, 3.2, 12.5);
+                });
+                this.canvas.addEventListener('wheel', (e) => {
+                    if (this.isModalOpen) return;
+                    this.cameraDistance = THREE.MathUtils.clamp(this.cameraDistance + e.deltaY * 0.006, 7.5, 18.0);
+                }, { passive: true });
+
+                document.getElementById('btn-start-game').addEventListener('click', () => {
+                    sound.init();
+                    sound.playPuzzleSolved();
+                    const startScreen = document.getElementById('start-screen');
+                    startScreen.classList.add('opacity-0', 'pointer-events-none');
+                    setTimeout(() => startScreen.classList.add('hidden'), 700);
+                    document.getElementById('hud-layer').classList.remove('hidden');
+                });
+
+                window.addEventListener('keydown', (e) => {
+                    if (this.isModalOpen) {
+                        if (e.key === 'Escape') {
+                            this.closeAltarModal();
+                            this.closeVideoModal();
+                        }
+                        return;
+                    }
+
+                    const code = e.code;
+                    if (code === 'KeyW' || code === 'ArrowUp') this.keys.forward = true;
+                    if (code === 'KeyS' || code === 'ArrowDown') this.keys.backward = true;
+                    if (code === 'KeyA' || code === 'ArrowLeft') this.keys.left = true;
+                    if (code === 'KeyD' || code === 'ArrowRight') this.keys.right = true;
+                    if (code === 'KeyQ') this.keys.orbitLeft = true;
+                    if (code === 'KeyR') this.keys.orbitRight = true;
+
+                    if (code === 'Space' && this.player.isGrounded && !this.isTransitioning) {
+                        e.preventDefault();
+                        this.player.velocityY = 8.8;
+                        this.player.isGrounded = false;
+                        sound.playJump();
+                    }
+
+                    if (code === 'KeyE' && this.activeInteractable && !this.isTransitioning) {
+                        e.preventDefault();
+                        this.activeInteractable.onInteract();
+                    }
+
+                    if (code === 'KeyH') {
+                        document.getElementById('clue-notebook').classList.toggle('hidden');
+                    }
+                });
+
+                window.addEventListener('keyup', (e) => {
+                    const code = e.code;
+                    if (code === 'KeyW' || code === 'ArrowUp') this.keys.forward = false;
+                    if (code === 'KeyS' || code === 'ArrowDown') this.keys.backward = false;
+                    if (code === 'KeyA' || code === 'ArrowLeft') this.keys.left = false;
+                    if (code === 'KeyD' || code === 'ArrowRight') this.keys.right = false;
+                    if (code === 'KeyQ') this.keys.orbitLeft = false;
+                    if (code === 'KeyR') this.keys.orbitRight = false;
+                });
+
+                document.getElementById('btn-interact-click').addEventListener('click', () => {
+                    if (this.activeInteractable && !this.isTransitioning) {
+                        this.activeInteractable.onInteract();
+                    }
+                });
+
+                document.getElementById('btn-toggle-clues').addEventListener('click', () => {
+                    document.getElementById('clue-notebook').classList.toggle('hidden');
+                    sound.playInteract();
+                });
+                document.getElementById('btn-close-notebook').addEventListener('click', () => {
+                    document.getElementById('clue-notebook').classList.add('hidden');
+                });
+
+                document.getElementById('btn-dev-solve-current').addEventListener('click', () => {
+                    this.solveCurrentWorldForDev();
+                });
+                document.getElementById('btn-dev-open-video').addEventListener('click', () => {
+                    sound.init();
+                    this.showVideoModal();
+                });
+
+                document.getElementById('btn-toggle-audio').addEventListener('click', () => {
+                    sound.init();
+                    const isMuted = sound.toggleMute();
+                    document.getElementById('audio-icon').textContent = isMuted ? '🔇' : '🔊';
+                    document.getElementById('audio-label').textContent = isMuted ? 'Ton Aus' : 'Ton An';
+                });
+
+                document.querySelectorAll('.world-jump-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        sound.init();
+                        const targetW = Number(btn.getAttribute('data-goto-world'));
+                        this.teleportToWorld(targetW);
+                    });
+                });
+
+                document.getElementById('btn-spawn-chest-debug').addEventListener('click', () => {
+                    sound.init();
+                    this.puzzle3Solved = true;
+                    this.chestSpawned = true;
+                    if (this.currentWorld !== 3) {
+                        this.teleportToWorld(3);
+                    } else {
+                        this.spawnTreasureChest();
+                        this.showToast('🎁 Schatztruhe beschworen!', 'Lauf zur goldenen Truhe in der Mitte und drücke [E]!', 4000);
+                    }
+                });
+
+                document.getElementById('btn-close-altar').addEventListener('click', () => this.closeAltarModal());
+                document.getElementById('btn-Cancel-altar').addEventListener('click', () => this.closeAltarModal());
+                document.getElementById('btn-submit-altar').addEventListener('click', () => this.checkAltarSubmission());
+
+                const videoEl = document.getElementById('anniversary-video');
+                const fallbackEl = document.getElementById('video-fallback-overlay');
+
+                videoEl.addEventListener('error', () => {
+                    fallbackEl.classList.remove('hidden');
+                }, true);
+
+                const sourceEl = videoEl.querySelector('source');
+                if (sourceEl) {
+                    sourceEl.addEventListener('error', () => {
+                        fallbackEl.classList.remove('hidden');
+                    });
+                }
+
+                document.getElementById('video-file-picker').addEventListener('change', (e) => {
+                    const file = e.target.files && e.target.files[0];
+                    if (file) {
+                        const url = URL.createObjectURL(file);
+                        videoEl.src = url;
+                        fallbackEl.classList.add('hidden');
+                        videoEl.play();
+                    }
+                });
+
+                document.getElementById('btn-close-video').addEventListener('click', () => this.closeVideoModal());
+            }
+
+            /**
+             * ========================================================================
+             * HAUPT-RENDER-LOOP (DIREKTE sRGB + ACESFilmic PBR-PIPELINE)
+             * ========================================================================
+             */
+            animate() {
+                requestAnimationFrame(this.animate);
+
+                const dt = Math.min(this.clock.getDelta(), 0.1);
+                const elapsed = this.clock.getElapsedTime();
+
+                if (this.skyUniforms) {
+                    this.skyUniforms.uTime.value = elapsed;
+                }
+
+                if (this.keys.orbitLeft) this.cameraOrbitAngle += dt * 1.6;
+                if (this.keys.orbitRight) this.cameraOrbitAngle -= dt * 1.6;
+
+                if (this.player.group && !this.isModalOpen && !this.isTransitioning) {
+                    let inputX = 0;
+                    let inputZ = 0;
+                    if (this.keys.forward) inputZ -= 1;
+                    if (this.keys.backward) inputZ += 1;
+                    if (this.keys.left) inputX -= 1;
+                    if (this.keys.right) inputX += 1;
+
+                    const isMoving = inputX !== 0 || inputZ !== 0;
+
+                    if (isMoving) {
+                        const len = Math.hypot(inputX, inputZ);
+                        inputX /= len;
+                        inputZ /= len;
+
+                        const sinA = Math.sin(this.cameraOrbitAngle);
+                        const cosA = Math.cos(this.cameraOrbitAngle);
+                        const moveX = inputX * cosA + inputZ * sinA;
+                        const moveZ = -inputX * sinA + inputZ * cosA;
+
+                        const nextX = this.player.group.position.x + moveX * this.player.speed * dt;
+                        const nextZ = this.player.group.position.z + moveZ * this.player.speed * dt;
+
+                        this.player.group.position.x = THREE.MathUtils.clamp(
+                            nextX,
+                            this.walkableBounds.minX,
+                            this.walkableBounds.maxX
+                        );
+                        this.player.group.position.z = THREE.MathUtils.clamp(
+                            nextZ,
+                            this.walkableBounds.minZ,
+                            this.walkableBounds.maxZ
+                        );
+
+                        this.player.targetRotationY = Math.atan2(moveX, moveZ);
+                        let diff = this.player.targetRotationY - this.player.group.rotation.y;
+                        while (diff < -Math.PI) diff += Math.PI * 2;
+                        while (diff > Math.PI) diff -= Math.PI * 2;
+                        this.player.group.rotation.y += diff * Math.min(1, dt * 12);
+
+                        this.player.walkCycle += dt * 13.5;
+                        const swing = Math.sin(this.player.walkCycle) * 0.56;
+                        this.player.legs[0].rotation.x = swing;
+                        this.player.legs[1].rotation.x = -swing;
+                        this.player.legs[2].rotation.x = -swing;
+                        this.player.legs[3].rotation.x = swing;
+
+                        this.player.bodyGroup.position.y = Math.abs(Math.cos(this.player.walkCycle)) * 0.06;
+                        this.player.neckGroup.rotation.x = Math.sin(this.player.walkCycle * 2) * 0.08 + 0.05;
+                        this.player.tailMesh.rotation.z = Math.cos(this.player.walkCycle * 2) * 0.25;
+
+                        this.player.ears.forEach((ear, idx) => {
+                            ear.rotation.x = 0.1 + Math.sin(this.player.walkCycle * 2 + idx) * 0.09;
+                        });
+                        this.player.tassels.forEach((tassel, idx) => {
+                            tassel.rotation.z = Math.sin(this.player.walkCycle * 2 + idx) * 0.18;
+                        });
+
+                        this.player.stepTimer += dt;
+                        if (this.player.stepTimer > 0.28 && this.player.isGrounded) {
+                            this.player.stepTimer = 0;
+                            sound.playStep();
+                        }
+                    } else {
+                        this.player.legs.forEach(leg => {
+                            leg.rotation.x = THREE.MathUtils.lerp(leg.rotation.x, 0, dt * 10);
+                        });
+                        this.player.bodyGroup.position.y = Math.sin(elapsed * 2.6) * 0.032;
+                        this.player.neckGroup.rotation.x = Math.sin(elapsed * 1.8) * 0.03;
+                        this.player.tailMesh.rotation.z = Math.sin(elapsed * 2.2) * 0.08;
+                        this.player.ears.forEach((ear, idx) => {
+                            ear.rotation.x = 0.1 + Math.sin(elapsed * 1.5 + idx * 2) * 0.04;
+                        });
+                    }
+
+                    const groundHeight = Math.max(
+                        0,
+                        this.getTerrainHeight(this.player.group.position.x, this.player.group.position.z, this.currentWorld)
+                    );
+
+                    if (!this.player.isGrounded || this.player.velocityY > 0) {
+                        this.player.group.position.y += this.player.velocityY * dt;
+                        this.player.velocityY -= 22.0 * dt;
+                        if (this.player.group.position.y <= groundHeight) {
+                            this.player.group.position.y = groundHeight;
+                            this.player.velocityY = 0;
+                            this.player.isGrounded = true;
+                        }
+                    } else {
+                        this.player.group.position.y = THREE.MathUtils.lerp(this.player.group.position.y, groundHeight, dt * 15);
+                    }
+
+                    this.checkWorld2SteppingStones(dt);
+
+                    let closest = null;
+                    let minDist = Infinity;
+                    for (const item of this.interactables) {
+                        const dist = this.player.group.position.distanceTo(item.position);
+                        if (dist < item.radius && dist < minDist) {
+                            minDist = dist;
+                            closest = item;
+                        }
+                    }
+
+                    this.activeInteractable = closest;
+                    const promptEl = document.getElementById('interaction-prompt');
+                    if (closest) {
+                        document.getElementById('interaction-label').textContent = closest.label;
+                        promptEl.classList.remove('hidden');
+                    } else {
+                        promptEl.classList.add('hidden');
+                    }
+                }
+
+                if (this.waterMesh && this.waterMesh.material.bumpMap) {
+                    this.waterMesh.material.bumpMap.offset.x = elapsed * 0.035;
+                    this.waterMesh.material.bumpMap.offset.y = elapsed * 0.025;
+                }
+
+                if (this.instancedGrass && this.grassMatrices.length > 0) {
+                    const dummy = new THREE.Object3D();
+                    const batchSize = 650;
+                    const startIdx = Math.floor((elapsed * 60) % 4) * batchSize;
+                    const endIdx = Math.min(this.grassMatrices.length, startIdx + batchSize);
+                    for (let i = startIdx; i < endIdx; i++) {
+                        const g = this.grassMatrices[i];
+                        const sway = Math.sin(elapsed * 2.2 + g.phase) * 0.14;
+                        dummy.position.set(g.x, g.y, g.z);
+                        dummy.rotation.set(sway, g.rotY, sway * 0.5);
+                        dummy.scale.set(1, g.scaleY, 1);
+                        dummy.updateMatrix();
+                        this.instancedGrass.setMatrixAt(i, dummy.matrix);
+                    }
+                    this.instancedGrass.instanceMatrix.needsUpdate = true;
+                }
+
+                this.puzzle1PedestalMeshes.forEach((item, idx) => {
+                    if (item.cube && item.gem) {
+                        item.cube.position.y = 2.58 + Math.sin(elapsed * 2.2 + idx) * 0.1;
+                        item.gem.rotation.y += dt * 1.8;
+                    }
+                });
+
+                this.animatedObjects.forEach(obj => {
+                    obj.mesh.position.y = obj.baseY + Math.sin(elapsed * obj.speed + obj.phase) * 0.22;
+                    if (obj.rotate) obj.mesh.rotation.y += dt * 1.2;
+                    if (obj.rotateZ) obj.mesh.rotation.z += dt * 0.8;
+                });
+
+                this.particles.forEach(p => {
+                    p.mesh.position.y = p.baseY + Math.sin(elapsed * p.speed + p.phase) * 0.45;
+                });
+
+                if (this.player.group) {
+                    const camOffsetX = Math.sin(this.cameraOrbitAngle) * this.cameraDistance;
+                    const camOffsetZ = Math.cos(this.cameraOrbitAngle) * this.cameraDistance;
+
+                    const desiredCamPos = new THREE.Vector3(
+                        this.player.group.position.x + camOffsetX,
+                        this.player.group.position.y + this.cameraPitchOffset,
+                        this.player.group.position.z + camOffsetZ
+                    );
+                    this.camera.position.lerp(desiredCamPos, Math.min(1, dt * 6.5));
+
+                    const desiredLook = new THREE.Vector3(
+                        this.player.group.position.x,
+                        this.player.group.position.y + 1.65,
+                        this.player.group.position.z
+                    );
+                    this.cameraLookAtTarget.lerp(desiredLook, Math.min(1, dt * 9.0));
+                    this.camera.lookAt(this.cameraLookAtTarget);
+                }
+
+                // Direktes PBR-Rendering mit vollem sRGBEncoding & ACESFilmicToneMapping
+                this.renderer.render(this.scene, this.camera);
+            }
+        }
+
+        // Spiel initialisieren sobald das Fenster geladen ist
+        window.onload = function () {
+            window.llamaGame = new LlamaAnniversaryGame();
+        };
+    </script>
+</body>
+</html>
