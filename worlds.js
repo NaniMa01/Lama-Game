@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * WORLD BUILDER – ERZEUGT DIE 3 ETAPPEN, SONNENUNTERGANG & INTERAKTIONS-OBJEKTE
+ * WORLD BUILDER – ERZEUGT DIE 3 ETAPPEN, SONNENUNTERGANG & 3D-HOLOGRAMM
  * ============================================================================
  */
 
@@ -15,6 +15,12 @@ class WorldBuilder {
         this.chestLidPivot = null;
         this.chestGroup = null;
 
+        // Hologramm-Referenzen für Welt 1
+        this.hologramGroup = null;
+        this.hologramRings = [];
+        this.hologramScale = 0;
+        this.hologramActive = false;
+
         this.buildSkyAndHorizon();
         this.buildWorld1();
         this.buildWorld2();
@@ -22,7 +28,6 @@ class WorldBuilder {
     }
 
     buildSkyAndHorizon() {
-        // Atmosphärische Sonnenuntergangs-Kuppel
         const skyGeo = new THREE.SphereGeometry(420, 32, 32);
         const skyMat = new THREE.ShaderMaterial({
             side: THREE.BackSide,
@@ -55,7 +60,6 @@ class WorldBuilder {
         });
         this.scene.add(new THREE.Mesh(skyGeo, skyMat));
 
-        // Glühende Abendsonne am Horizont
         const sunGlow = new THREE.Sprite(new THREE.SpriteMaterial({
             map: TextureFactory.createGlowTexture('#ffae52'),
             blending: THREE.AdditiveBlending
@@ -66,7 +70,7 @@ class WorldBuilder {
     }
 
     // ------------------------------------------------------------------------
-    // WELT 1: SCHWEBENDE WIESEN-OASE (Blumen-Altar & Steintafeln)
+    // WELT 1: SCHWEBENDE WIESEN-OASE (Blumen-Altar & Schwebendes Hologramm)
     // ------------------------------------------------------------------------
     buildWorld1() {
         const group = new THREE.Group();
@@ -74,7 +78,6 @@ class WorldBuilder {
         const granitePBR = TextureFactory.createPBRSet('granite', 4, 4);
         const barkPBR = TextureFactory.createPBRSet('bark', 2, 4);
 
-        // Hauptinsel
         const islandTop = new THREE.Mesh(
             new THREE.CylinderGeometry(24, 22, 2.2, 48),
             new THREE.MeshStandardMaterial({
@@ -101,7 +104,6 @@ class WorldBuilder {
         islandRock.position.y = -10;
         group.add(islandRock);
 
-        // Kleiner reflektierender Oasen-Teich
         this.waterMesh = new THREE.Mesh(
             new THREE.CircleGeometry(5.5, 36),
             new THREE.MeshPhysicalMaterial({
@@ -115,7 +117,6 @@ class WorldBuilder {
         this.waterMesh.position.set(-7.5, 0.03, -5);
         group.add(this.waterMesh);
 
-        // Bäume rund um die Oase
         const treeCoords = [[-14, -8], [-12, 8], [14, -7], [13, 9], [-5, -16], [7, -16]];
         treeCoords.forEach(([tx, tz]) => {
             const tree = this.createTree(barkPBR);
@@ -123,7 +124,7 @@ class WorldBuilder {
             group.add(tree);
         });
 
-        // Der goldene Blumen-Altar im Norden der Insel (Challenge 1)
+        // Goldener Blumen-Altar
         const altarGroup = new THREE.Group();
         altarGroup.position.set(0, 0, -11);
 
@@ -143,7 +144,6 @@ class WorldBuilder {
         goldFrame.castShadow = true;
         altarGroup.add(goldFrame);
 
-        // Schwebender Leuchtkristall über dem Blumen-Altar
         this.altarGem = new THREE.Mesh(
             new THREE.OctahedronGeometry(0.55, 0),
             new THREE.MeshStandardMaterial({
@@ -166,14 +166,16 @@ class WorldBuilder {
 
         group.add(altarGroup);
 
+        // --- DAS SCHWEBENDE 3D-HOLOGRAMM ÜBER DEM ALTAR ---
+        this.buildHologramDisplay(group);
+
         this.interactables[0].push({
             pos: new THREE.Vector3(0, 0, -11),
-            radius: 4.2,
+            radius: 4.5,
             type: 'flower_altar',
             label: 'Blumen-Mosaik untersuchen'
         });
 
-        // Zwei Hinweis-Steintafeln
         const tabletCoords = [[-5.5, -8.5], [5.5, -8.5]];
         tabletCoords.forEach(([sx, sz], idx) => {
             const tab = this.createStoneTablet(granitePBR);
@@ -193,8 +195,143 @@ class WorldBuilder {
         this.worlds.push(group);
     }
 
+    /**
+     * Erstellt den 3D-Hologramm-Projektor samt Bildfläche, Scanline-Shader-Look
+     * und rotierenden Energieringen über dem Blumen-Altar.
+     */
+    buildHologramDisplay(worldGroup) {
+        this.hologramGroup = new THREE.Group();
+        this.hologramGroup.position.set(0, 4.9, -11);
+        this.hologramGroup.visible = false;
+        this.hologramGroup.scale.set(0.01, 0.01, 0.01);
+
+        // 1. Halbtransparenter Projektions-Lichtkegel vom Altar nach oben
+        const coneGeo = new THREE.ConeGeometry(3.2, 3.4, 32, 1, true);
+        const coneMat = new THREE.MeshBasicMaterial({
+            color: 0x64ffda,
+            transparent: true,
+            opacity: 0.18,
+            side: THREE.DoubleSide,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        });
+        const projectorCone = new THREE.Mesh(coneGeo, coneMat);
+        projectorCone.rotation.x = Math.PI; // Spitze zeigt nach unten zum Altar
+        projectorCone.position.y = -1.7;
+        this.hologramGroup.add(projectorCone);
+
+        // 2. Fallback-Textur (falls Bild noch lädt) + Laden von erinnerung1.jpg
+        const fallbackCanvas = document.createElement('canvas');
+        fallbackCanvas.width = 800;
+        fallbackCanvas.height = 600;
+        const fCtx = fallbackCanvas.getContext('2d');
+        const grad = fCtx.createLinearGradient(0, 0, 800, 600);
+        grad.addColorStop(0, '#ad1457');
+        grad.addColorStop(0.5, '#ff6f00');
+        grad.addColorStop(1, '#4a148c');
+        fCtx.fillStyle = grad;
+        fCtx.fillRect(0, 0, 800, 600);
+        fCtx.fillStyle = '#ffffff';
+        fCtx.font = 'bold 54px "Segoe UI", sans-serif';
+        fCtx.textAlign = 'center';
+        fCtx.fillText('+ SWISS INDOORS', 400, 260);
+        fCtx.font = '28px "Segoe UI", sans-serif';
+        fCtx.fillText('Lege "erinnerung1.jpg" in den Hauptordner', 400, 340);
+
+        const fallbackTex = new THREE.CanvasTexture(fallbackCanvas);
+        fallbackTex.encoding = THREE.sRGBEncoding;
+
+        const imgMat = new THREE.MeshBasicMaterial({
+            map: fallbackTex,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.94
+        });
+
+        // Lade das echte Foto (erinnerung1.jpg)
+        const loader = new THREE.TextureLoader();
+        loader.load(
+            PERSONAL_CONFIG.world1.hologramImageUrl,
+            (loadedTex) => {
+                loadedTex.encoding = THREE.sRGBEncoding;
+                imgMat.map = loadedTex;
+                imgMat.needsUpdate = true;
+            }
+        );
+
+        // 4:3 Bildfläche (passend zum Foto)
+        const picPlane = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 3.9), imgMat);
+        this.hologramGroup.add(picPlane);
+
+        // 3. Feines Hologramm-Scanline-Overlay vor und hinter dem Bild
+        const scanCanvas = document.createElement('canvas');
+        scanCanvas.width = 64;
+        scanCanvas.height = 256;
+        const sCtx = scanCanvas.getContext('2d');
+        for (let y = 0; y < 256; y += 4) {
+            sCtx.fillStyle = (y % 8 === 0) ? 'rgba(100, 255, 218, 0.16)' : 'rgba(255, 213, 79, 0.08)';
+            sCtx.fillRect(0, y, 64, 2);
+        }
+        const scanTex = new THREE.CanvasTexture(scanCanvas);
+        scanTex.wrapS = THREE.RepeatWrapping;
+        scanTex.wrapT = THREE.RepeatWrapping;
+        this.hologramScanTex = scanTex;
+
+        const scanMat = new THREE.MeshBasicMaterial({
+            map: scanTex,
+            transparent: true,
+            blending: THREE.AdditiveBlending,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        });
+        const scanOverlay = new THREE.Mesh(new THREE.PlaneGeometry(5.24, 3.94), scanMat);
+        this.hologramGroup.add(scanOverlay);
+
+        // 4. Leuchtender Hologramm-Energierahmen (Cyan & Gold)
+        const borderMat = new THREE.MeshBasicMaterial({ color: 0x80deea });
+        const topBar = new THREE.Mesh(new THREE.BoxGeometry(5.45, 0.1, 0.1), borderMat);
+        topBar.position.y = 2.0;
+        const botBar = new THREE.Mesh(new THREE.BoxGeometry(5.45, 0.1, 0.1), borderMat);
+        botBar.position.y = -2.0;
+        this.hologramGroup.add(topBar, botBar);
+
+        // 5. Zwei schwebende Hologramm-Ringe um den Altar
+        this.hologramRings = [];
+        [1.9, 2.5].forEach((radius, idx) => {
+            const ring = new THREE.Mesh(
+                new THREE.TorusGeometry(radius, 0.035, 12, 48),
+                new THREE.MeshBasicMaterial({
+                    color: idx === 0 ? 0x64ffda : 0xffd54f,
+                    transparent: true,
+                    opacity: 0.75
+                })
+            );
+            ring.rotation.x = Math.PI / 2;
+            ring.position.y = -2.3 + idx * 0.45;
+            this.hologramGroup.add(ring);
+            this.hologramRings.push(ring);
+        });
+
+        // 6. Hintergrund-Schein
+        const backGlow = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: TextureFactory.createGlowTexture('#64ffda'),
+            blending: THREE.AdditiveBlending,
+            transparent: true,
+            opacity: 0.55
+        }));
+        backGlow.scale.set(8.5, 6.5, 1);
+        this.hologramGroup.add(backGlow);
+
+        worldGroup.add(this.hologramGroup);
+    }
+
+    activateHologram() {
+        this.hologramActive = true;
+        this.hologramGroup.visible = true;
+    }
+
     // ------------------------------------------------------------------------
-    // WELT 2: DÄMMERUNGS-SCHLUCHT (5x4 Trittstein-Brücke & Obelisken)
+    // WELT 2: DÄMMERUNGS-SCHLUCHT
     // ------------------------------------------------------------------------
     buildWorld2() {
         const group = new THREE.Group();
@@ -206,19 +343,16 @@ class WorldBuilder {
             roughness: 0.85
         });
 
-        // Start-Plateau (Süden)
         const startPlat = new THREE.Mesh(new THREE.BoxGeometry(20, 4, 14), stoneMat);
         startPlat.position.set(0, -2, 4);
         startPlat.receiveShadow = true;
         group.add(startPlat);
 
-        // Ziel-Plateau (Norden)
         const endPlat = new THREE.Mesh(new THREE.BoxGeometry(20, 4, 12), stoneMat);
         endPlat.position.set(0, -2, -26);
         endPlat.receiveShadow = true;
         group.add(endPlat);
 
-        // 2 Hinweis-Obelisken auf dem Start-Plateau
         [[-5.5, -1], [5.5, -1]].forEach(([ox, oz], idx) => {
             const ob = this.createStoneTablet(sandPBR);
             ob.position.set(ox, 0, oz);
@@ -233,7 +367,6 @@ class WorldBuilder {
             });
         });
 
-        // 5 Reihen x 4 Spalten Trittsteine über die Schlucht
         const gridNums = PERSONAL_CONFIG.world2.gridNumbers;
         const startZ = -6.0;
         const rowSpacing = 3.4;
@@ -267,7 +400,7 @@ class WorldBuilder {
     }
 
     // ------------------------------------------------------------------------
-    // WELT 3: STERNENHIMMEL-GIPFEL (Altar der Erinnerungen & Schatztruhe)
+    // WELT 3: STERNENHIMMEL-GIPFEL
     // ------------------------------------------------------------------------
     buildWorld3() {
         const group = new THREE.Group();
@@ -286,7 +419,6 @@ class WorldBuilder {
         peak.receiveShadow = true;
         group.add(peak);
 
-        // Leuchtende Kristall-Monolithen im Kreis
         for (let i = 0; i < 8; i++) {
             const angle = (i / 8) * Math.PI * 2;
             const cx = Math.cos(angle) * 16;
@@ -307,7 +439,6 @@ class WorldBuilder {
             this.floatingCrystals.push(crystal);
         }
 
-        // Altar der Erinnerungen (für Rätsel 3)
         const altar = this.createStoneTablet(slatePBR);
         altar.position.set(0, 0, -6);
         group.add(altar);
@@ -319,7 +450,6 @@ class WorldBuilder {
             label: 'Altar der Erinnerungen öffnen'
         });
 
-        // Die Goldene Schatztruhe (erscheint nach Rätsel 3)
         this.chestGroup = new THREE.Group();
         this.chestGroup.position.set(0, 0, -12.5);
         this.chestGroup.visible = false;
@@ -336,7 +466,6 @@ class WorldBuilder {
         trim.position.y = 1.0;
         this.chestGroup.add(trim);
 
-        // Truhendeckel mit Scharnier hinten
         this.chestLidPivot = new THREE.Group();
         this.chestLidPivot.position.set(0, 1.1, -0.7);
 
@@ -349,7 +478,6 @@ class WorldBuilder {
         this.chestLidPivot.add(lid);
         this.chestGroup.add(this.chestLidPivot);
 
-        // Goldene Lichtsäule über der Truhe
         const beam = new THREE.Sprite(new THREE.SpriteMaterial({
             map: TextureFactory.createGlowTexture('#ffd54f'),
             blending: THREE.AdditiveBlending
@@ -420,6 +548,22 @@ class WorldBuilder {
             this.altarGem.rotation.y = time * 1.4;
             this.altarGem.position.y = 2.55 + Math.sin(time * 2.5) * 0.15;
         }
+
+        // Schwebendes 3D-Hologramm sanft entfalten & animieren
+        if (this.hologramActive && this.hologramGroup) {
+            this.hologramScale = Math.min(1.0, this.hologramScale + 0.035);
+            this.hologramGroup.scale.setScalar(this.hologramScale);
+            this.hologramGroup.position.y = 4.9 + Math.sin(time * 2.2) * 0.18;
+            this.hologramGroup.rotation.y = Math.sin(time * 0.7) * 0.18;
+
+            if (this.hologramScanTex) {
+                this.hologramScanTex.offset.y = (time * 0.25) % 1;
+            }
+            this.hologramRings.forEach((ring, i) => {
+                ring.rotation.z = time * (i === 0 ? 1.2 : -0.9);
+            });
+        }
+
         this.floatingCrystals.forEach((c, idx) => {
             c.rotation.y = time * 0.6 + idx;
             c.position.y = 2.4 + Math.sin(time * 2 + idx) * 0.25;
