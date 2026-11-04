@@ -2,30 +2,28 @@
  * ============================================================================
  * PERSONAL_CONFIG – ZENTRALE KONFIGURATION FÜR DEIN JUBILÄUMSSPIEL
  * ============================================================================
- * Hier kannst du später alle Texte, Hinweise, Bilder, Zahlenpfade und Fragen
- * anpassen, ohne den eigentlichen Spielcode anfassen zu müssen.
  */
 
 const PERSONAL_CONFIG = {
 
     // ------------------------------------------------------------------------
-    // WELT 1: DIE SCHWEBENDE WIESEN-OASE (Blumen-Schiebepuzzle)
+    // WELT 1: DIE SCHWEBENDE WIESEN-OASE (Blumen-Schiebepuzzle & Hologramm)
     // ------------------------------------------------------------------------
     world1: {
         badge: "Etappe 1 von 3",
         title: "Welt 1: Die schwebende Wiesen-Oase",
         objective: "Untersuche den goldenen Blumen-Altar am Wasser [Taste E]",
+        hologramObjective: "Bewundere euer Erinnerungs-Hologramm & reise am Altar weiter in Welt 2 [Taste E]",
 
-        // OPTIONAL: Wenn du hier einen Dateinamen einträgst (z.B. "assets/unser-bild1.jpg"),
-        // wird dein Foto in das Blumen-Schiebepuzzle geladen!
-        // Lässt du es leer (""), zeichnet das Spiel ein kunstvolles Blumen-Gemälde.
+        // Das Bild für das schwebende 3D-Hologramm über dem Altar nach dem Lösen:
+        hologramImageUrl: "erinnerung1.jpg",
+
+        // Optional: Eigenes Bild für die 9 Schiebekacheln selbst (leer = Blumen-Mandala):
         customFlowerImageUrl: "",
 
-        // Botschaft, die direkt unter dem fertigen ersten Bild erscheint:
-        revealTitle: "✨ Unser erstes Bild erblüht! ✨",
-        revealCaption: "Wie jede einzelne Blüte in diesem Garten fügt sich auch jeder unserer gemeinsamen Momente zu einem wunderschönen Ganzen zusammen.",
+        revealTitle: "✨ Das Blumen-Mosaik ist vollendet! ✨",
+        revealCaption: "Über dem Altar in der Oase ist soeben ein schwebendes Hologramm unserer ersten großen Erinnerung erschienen!",
 
-        // Zwei Inschrift-Steintafeln in Welt 1:
         tablets: [
             {
                 title: "Steintafel des Gärtners",
@@ -46,8 +44,6 @@ const PERSONAL_CONFIG = {
         title: "Welt 2: Die Dämmerungs-Schlucht",
         objective: "Überquere die Schlucht über die 5 Reihen der leuchtenden Trittsteine",
 
-        // 5 Reihen mit je 4 Steinen (von Reihe 0 am Start bis Reihe 4 am Portal).
-        // Du kannst hier später eure eigenen Zahlen (z.B. Kennenlerndatum) eintragen!
         gridNumbers: [
             [2, 5, 8, 3],      // Reihe 1 (Start)
             [9, 4, 7, 1],      // Reihe 2
@@ -56,10 +52,8 @@ const PERSONAL_CONFIG = {
             [20, 16, 13, 18]   // Reihe 5 (Ziel)
         ],
 
-        // Die richtige Zahl für jede der 5 Reihen (Logik hier: +2, +3, +4, +5):
         solutionPath: [2, 4, 7, 11, 16],
 
-        // Zwei Hinweis-Obelisken vor der Brücke:
         obelisks: [
             {
                 title: "Obelisk der Zahlenfolge",
@@ -81,12 +75,11 @@ const PERSONAL_CONFIG = {
         objective: "Löse das Rätsel am Altar der Erinnerungen [Taste E]",
         chestObjective: "Öffne die goldene Schatztruhe in der Mitte des Gipfels [Taste E]",
 
-        // Die 3 Fragen am Altar (correctIndex gibt an, welche Option stimmt: 0, 1 oder 2):
         questions: [
             {
-                question: "1. Welches Symbol begleitete unsere erste Etappe auf der schwebenden Insel?",
+                question: "1. Welche Erinnerung erschien nach dem Blumen-Mosaik als schwebendes Hologramm?",
                 options: [
-                    "Das goldene Blumen-Mosaik der Erinnerung",
+                    "Unser gemeinsames Foto vor der Swiss-Indoors-Blumenwand 🌸🎾",
                     "Ein Kompass aus Eis",
                     "Ein silberner Anker"
                 ],
