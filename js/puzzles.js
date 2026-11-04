@@ -165,11 +165,23 @@ class PuzzleManager {
         }
     }
 
-    completeFlowerPuzzle() {
+   completeFlowerPuzzle() {
         this.puzzle1Solved = true;
         this.flowerState = [0, 1, 2, 3, 4, 5, 6, 7, 8];
         this.game.sound.puzzleSolved();
         this.renderFlowerGrid();
+
+        // Schwebendes 3D-Hologramm über dem Altar in Welt 1 aktivieren!
+        if (this.game.worldBuilder.activateHologram) {
+            this.game.worldBuilder.activateHologram();
+        }
+
+        // Interaktions-Label am Altar auf Teleport umschalten
+        const altarItem = this.game.worldBuilder.interactables[0].find(i => i.type === 'flower_altar');
+        if (altarItem) {
+            altarItem.label = 'In die 2. Welt (Dämmerungs-Schlucht) teleportieren ➔';
+        }
+        document.getElementById('world-objective').innerText = PERSONAL_CONFIG.world1.hologramObjective || PERSONAL_CONFIG.world1.objective;
 
         document.getElementById('flower-reveal-title').innerText = PERSONAL_CONFIG.world1.revealTitle;
         document.getElementById('flower-reveal-caption').innerText = PERSONAL_CONFIG.world1.revealCaption;
@@ -177,11 +189,16 @@ class PuzzleManager {
         document.getElementById('flower-modal-footer').style.display = 'none';
     }
 
-    proceedFromFlowerPuzzle() {
+    /**
+     * DIESE FUNKTION HAT IN DEINER PUZZLES.JS GEFEHLT:
+     */
+    revealHologramInWorld() {
         this.game.closeAllModals();
-        this.game.teleportToWorld(1);
+        this.game.cameraAngle = 0;
+        this.game.cameraPitch = 0.22;
+        this.game.cameraDist = 11.5;
+        this.game.showToast("✨ Euer Erinnerungs-Hologramm schwebt über dem Altar! Drücke [E] am Altar für Level 2 ✨");
     }
-
     // ------------------------------------------------------------------------
     // CHALLENGE 2: TRITTSTEIN-BRÜCKE IN WELT 2
     // ------------------------------------------------------------------------
