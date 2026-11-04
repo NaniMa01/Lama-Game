@@ -25,7 +25,6 @@ class AnniversaryGame {
         this.initEvents();
         this.updateHUD();
 
-        // Ladebildschirm sanft ausblenden
         setTimeout(() => {
             const loader = document.getElementById('loader');
             loader.style.opacity = '0';
@@ -51,7 +50,6 @@ class AnniversaryGame {
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.body.appendChild(this.renderer.domElement);
 
-        // Warme Sonnenuntergangs-Beleuchtung
         const hemiLight = new THREE.HemisphereLight(0xffb74d, 0x2a1442, 0.75);
         this.scene.add(hemiLight);
 
@@ -106,7 +104,7 @@ class AnniversaryGame {
             const dx = e.clientX - this.mouse.x;
             const dy = e.clientY - this.mouse.y;
             this.cameraAngle -= dx * 0.007;
-            this.cameraPitch = Math.max(0.15, Math.min(1.05, this.cameraPitch + dy * 0.005));
+            this.cameraPitch = Math.max(0.12, Math.min(1.05, this.cameraPitch + dy * 0.005));
             this.mouse.x = e.clientX;
             this.mouse.y = e.clientY;
         });
@@ -124,7 +122,6 @@ class AnniversaryGame {
             this.renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // Lokaler Video-Datei-Picker zum direkten Testen im Browser
         const videoInput = document.getElementById('local-video-input');
         if (videoInput) {
             videoInput.addEventListener('change', e => {
@@ -158,7 +155,7 @@ class AnniversaryGame {
         toast.innerText = text;
         toast.classList.add('show');
         clearTimeout(this.toastTimeout);
-        this.toastTimeout = setTimeout(() => toast.classList.remove('show'), 3800);
+        this.toastTimeout = setTimeout(() => toast.classList.remove('show'), 4200);
     }
 
     triggerInteraction() {
@@ -166,8 +163,13 @@ class AnniversaryGame {
         const item = this.activeInteractable;
 
         if (item.type === 'flower_altar') {
-            this.puzzles.renderFlowerGrid();
-            document.getElementById('flower-puzzle-modal').classList.add('active');
+            // Wenn Rätsel 1 bereits gelöst ist und das Hologramm schwebt -> Teleport nach Welt 2!
+            if (this.puzzles.puzzle1Solved) {
+                this.teleportToWorld(1);
+            } else {
+                this.puzzles.renderFlowerGrid();
+                document.getElementById('flower-puzzle-modal').classList.add('active');
+            }
         } else if (item.type === 'tablet_w1') {
             const data = PERSONAL_CONFIG.world1.tablets[item.index];
             document.getElementById('tablet-title').innerText = data.title;
@@ -194,7 +196,6 @@ class AnniversaryGame {
         this.puzzles.chestOpened = true;
         this.sound.chestFanfare();
 
-        // Truhendeckel sanft öffnen
         let openProgress = 0;
         const openInterval = setInterval(() => {
             openProgress += 0.08;
@@ -233,6 +234,7 @@ class AnniversaryGame {
 
             this.llama.group.rotation.y = Math.PI;
             this.cameraAngle = 0;
+            this.cameraPitch = 0.36;
             this.updateHUD();
 
             setTimeout(() => fade.classList.remove('active'), 250);
@@ -243,7 +245,11 @@ class AnniversaryGame {
         const cfg = [PERSONAL_CONFIG.world1, PERSONAL_CONFIG.world2, PERSONAL_CONFIG.world3][this.currentWorld];
         document.getElementById('world-badge').innerText = cfg.badge;
         document.getElementById('world-title').innerText = cfg.title;
-        document.getElementById('world-objective').innerText = cfg.objective;
+        if (this.currentWorld === 0 && this.puzzles.puzzle1Solved) {
+            document.getElementById('world-objective').innerText = cfg.hologramObjective;
+        } else {
+            document.getElementById('world-objective').innerText = cfg.objective;
+        }
     }
 
     openChestDirectly() {
@@ -258,8 +264,8 @@ class AnniversaryGame {
 
     solveCurrentPuzzle() {
         if (this.currentWorld === 0) {
-            document.getElementById('flower-puzzle-modal').classList.add('active');
             this.puzzles.completeFlowerPuzzle();
+            this.puzzles.revealHologramInWorld();
         } else if (this.currentWorld === 1) {
             this.puzzles.puzzle2Solved = true;
             this.teleportToWorld(2);
@@ -285,14 +291,12 @@ class AnniversaryGame {
                 this.llama.pos.x += Math.sin(moveAngle) * this.llama.speed;
                 this.llama.pos.z += Math.cos(moveAngle) * this.llama.speed;
 
-                // Sanfte Drehung in Laufrichtung
                 let diff = moveAngle - this.llama.group.rotation.y;
                 while (diff < -Math.PI) diff += Math.PI * 2;
                 while (diff > Math.PI) diff -= Math.PI * 2;
                 this.llama.group.rotation.y += diff * 0.14;
             }
 
-            // Schwerkraft & Boden-Kollision
             this.llama.velY -= 0.012;
             this.llama.pos.y += this.llama.velY;
             if (this.llama.pos.y <= 0) {
@@ -304,12 +308,10 @@ class AnniversaryGame {
             this.llama.updateAnimation(isMoving, elapsed);
         }
 
-        // Welt 2: Trittsteine prüfen
         if (this.currentWorld === 1) {
             this.puzzles.checkSteppingStones(this.llama.pos);
         }
 
-        // Interaktions-Radius prüfen
         this.activeInteractable = null;
         const list = this.worldBuilder.interactables[this.currentWorld] || [];
         for (const item of list) {
@@ -328,13 +330,17 @@ class AnniversaryGame {
             promptEl.style.display = 'none';
         }
 
-        // Geschmeidige Third-Person-Kamera
         const camX = this.llama.pos.x + Math.sin(this.cameraAngle) * Math.cos(this.cameraPitch) * this.cameraDist;
         const camZ = this.llama.pos.z + Math.cos(this.cameraAngle) * Math.cos(this.cameraPitch) * this.cameraDist;
         const camY = this.llama.pos.y + Math.sin(this.cameraPitch) * this.cameraDist + 1.2;
 
+        // Wenn das Hologramm in Welt 1 aktiv ist, schaut die Kamera etwas höher, damit es voll im Bild ist
+        const lookAtY = (this.currentWorld === 0 && this.puzzles.puzzle1Solved)
+            ? this.llama.pos.y + 2.4
+            : this.llama.pos.y + 1.6;
+
         this.camera.position.lerp(new THREE.Vector3(camX, camY, camZ), 0.1);
-        this.camera.lookAt(this.llama.pos.x, this.llama.pos.y + 1.6, this.llama.pos.z);
+        this.camera.lookAt(this.llama.pos.x, lookAtY, this.llama.pos.z);
     }
 
     animate() {
