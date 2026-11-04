@@ -1,115 +1,596 @@
-/**
- * ============================================================================
- * PERSONAL_CONFIG – ZENTRALE KONFIGURATION FÜR DEIN JUBILÄUMSSPIEL
- * ============================================================================
- * Hier kannst du später alle Texte, Hinweise, Bilder, Zahlenpfade und Fragen
- * anpassen, ohne den eigentlichen Spielcode anfassen zu müssen.
- */
+/* ============================================================================
+   STYLE.CSS – DIE REISE DES KLEINEN LAMAS
+   ============================================================================ */
 
-const PERSONAL_CONFIG = {
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
 
-    // ------------------------------------------------------------------------
-    // WELT 1: DIE SCHWEBENDE WIESEN-OASE (Blumen-Schiebepuzzle)
-    // ------------------------------------------------------------------------
-    world1: {
-        badge: "Etappe 1 von 3",
-        title: "Welt 1: Die schwebende Wiesen-Oase",
-        objective: "Untersuche den goldenen Blumen-Altar am Wasser [Taste E]",
+body {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: #140926;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    user-select: none;
+    color: #fff;
+}
 
-        // OPTIONAL: Wenn du hier einen Dateinamen einträgst (z.B. "assets/unser-bild1.jpg"),
-        // wird dein Foto in das Blumen-Schiebepuzzle geladen!
-        // Lässt du es leer (""), zeichnet das Spiel ein kunstvolles Blumen-Gemälde.
-        customFlowerImageUrl: "",
+canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
 
-        // Botschaft, die direkt unter dem fertigen ersten Bild erscheint:
-        revealTitle: "✨ Unser erstes Bild erblüht! ✨",
-        revealCaption: "Wie jede einzelne Blüte in diesem Garten fügt sich auch jeder unserer gemeinsamen Momente zu einem wunderschönen Ganzen zusammen.",
+/* ----------------------------------------------------------------------------
+   1. LADEBILDSCHIRM & TELEPORT-BLENDE
+   ---------------------------------------------------------------------------- */
+#loader {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at center, #2b1548 0%, #11061f 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    transition: opacity 0.7s ease;
+}
 
-        // Zwei Inschrift-Steintafeln in Welt 1:
-        tablets: [
-            {
-                title: "Steintafel des Gärtners",
-                text: "„Achte beim Verschieben der Blumenkacheln auf den goldenen Außenrahmen: Die vier Eckblüten tragen goldene Eck-Ornamente, während die große Sonnen-Rose das Herz in der Mitte bildet.“"
-            },
-            {
-                title: "Steintafel der Harmonie",
-                text: "„Oben leuchten die warmen Abendblüten (Koralle, Gold & Violett), in der Mitte fließt das grüne Rankenband, und unten wurzeln die tiefblauen Nachtblumen.“"
-            }
-        ]
-    },
+.spinner {
+    width: 56px;
+    height: 56px;
+    border: 4px solid rgba(255, 190, 100, 0.2);
+    border-top-color: #ffbe64;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
 
-    // ------------------------------------------------------------------------
-    // WELT 2: DIE DÄMMERUNGS-SCHLUCHT (Der Pfad der leuchtenden Trittsteine)
-    // ------------------------------------------------------------------------
-    world2: {
-        badge: "Etappe 2 von 3",
-        title: "Welt 2: Die Dämmerungs-Schlucht",
-        objective: "Überquere die Schlucht über die 5 Reihen der leuchtenden Trittsteine",
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
 
-        // 5 Reihen mit je 4 Steinen (von Reihe 0 am Start bis Reihe 4 am Portal).
-        // Du kannst hier später eure eigenen Zahlen (z.B. Kennenlerndatum) eintragen!
-        gridNumbers: [
-            [2, 5, 8, 3],      // Reihe 1 (Start)
-            [9, 4, 7, 1],      // Reihe 2
-            [6, 12, 7, 10],    // Reihe 3
-            [14, 8, 11, 15],   // Reihe 4
-            [20, 16, 13, 18]   // Reihe 5 (Ziel)
-        ],
+#loader h2 {
+    color: #ffecd2;
+    font-weight: 600;
+    letter-spacing: 1px;
+}
 
-        // Die richtige Zahl für jede der 5 Reihen (Logik hier: +2, +3, +4, +5):
-        solutionPath: [2, 4, 7, 11, 16],
+#loader p {
+    color: #cbbbe0;
+    font-size: 14px;
+    margin-top: 8px;
+}
 
-        // Zwei Hinweis-Obelisken vor der Brücke:
-        obelisks: [
-            {
-                title: "Obelisk der Zahlenfolge",
-                text: "„Der sichere Pfad über den Abgrund beginnt in der ersten Reihe bei der Zahl 2. Mit jedem Schritt nach vorn wächst der Abstand um eins: +2, +3, +4, +5.“"
-            },
-            {
-                title: "Obelisk des Reisenden",
-                text: "„Reihe 1: 2  ➔  Reihe 2: 4  ➔  Reihe 3: 7  ➔  Reihe 4: 11  ➔  Reihe 5: 16. Betrittst du einen falschen Stein, trägt dich der Wind sanft an den Anfang zurück.“"
-            }
-        ]
-    },
+#fade-overlay {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle, #fff8e7 0%, #ffb74d 60%, #2a1245 100%);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 900;
+    transition: opacity 0.65s ease;
+}
 
-    // ------------------------------------------------------------------------
-    // WELT 3: DER STERNENHIMMEL-GIPFEL (Altar der Erinnerungen & Schatztruhe)
-    // ------------------------------------------------------------------------
-    world3: {
-        badge: "Etappe 3 von 3",
-        title: "Welt 3: Der Sternenhimmel-Gipfel",
-        objective: "Löse das Rätsel am Altar der Erinnerungen [Taste E]",
-        chestObjective: "Öffne die goldene Schatztruhe in der Mitte des Gipfels [Taste E]",
+#fade-overlay.active {
+    opacity: 1;
+}
 
-        // Die 3 Fragen am Altar (correctIndex gibt an, welche Option stimmt: 0, 1 oder 2):
-        questions: [
-            {
-                question: "1. Welches Symbol begleitete unsere erste Etappe auf der schwebenden Insel?",
-                options: [
-                    "Das goldene Blumen-Mosaik der Erinnerung",
-                    "Ein Kompass aus Eis",
-                    "Ein silberner Anker"
-                ],
-                correctIndex: 0
-            },
-            {
-                question: "2. Welche Zahlenfolge öffnete den sicheren Pfad über die Dämmerungs-Schlucht?",
-                options: [
-                    "1 – 3 – 5 – 7 – 9",
-                    "2 – 4 – 7 – 11 – 16",
-                    "3 – 6 – 9 – 12 – 15"
-                ],
-                correctIndex: 1
-            },
-            {
-                question: "3. Was feiern wir am Ziel dieser magischen Reise?",
-                options: [
-                    "Einen gewöhnlichen Dienstag",
-                    "Unser 1-jähriges Jubiläum voller gemeinsamer Abenteuer ❤️",
-                    "Den Beginn der Regenzeit"
-                ],
-                correctIndex: 1
-            }
-        ]
-    }
-};
+/* ----------------------------------------------------------------------------
+   2. HUD (OBEN LINKS) & ENTWICKLER-PANEL (OBEN RECHTS)
+   ---------------------------------------------------------------------------- */
+#hud {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: rgba(20, 10, 38, 0.72);
+    border: 1px solid rgba(255, 190, 100, 0.35);
+    backdrop-filter: blur(10px);
+    padding: 16px 22px;
+    border-radius: 16px;
+    max-width: 460px;
+    z-index: 20;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+    pointer-events: none;
+}
+
+.badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #ffbe64, #ff7e5f);
+    color: #1c0c30;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    margin-bottom: 6px;
+}
+
+#hud h1 {
+    font-size: 20px;
+    color: #ffecd2;
+    margin-bottom: 4px;
+}
+
+#hud p {
+    font-size: 13.5px;
+    color: #e2d4f0;
+    line-height: 1.4;
+}
+
+.controls-hint {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    font-size: 11.5px;
+    color: #cbbbe0;
+}
+
+.controls-hint b {
+    color: #ffbe64;
+}
+
+.dev-panel {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(20, 10, 38, 0.8);
+    border: 1px solid rgba(255, 190, 100, 0.35);
+    backdrop-filter: blur(10px);
+    padding: 12px 16px;
+    border-radius: 14px;
+    z-index: 25;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+}
+
+.dev-panel h3 {
+    font-size: 11px;
+    color: #ffbe64;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+}
+
+.dev-btns {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.dev-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.dev-btn:hover {
+    background: #ffbe64;
+    color: #1a0b2e;
+    font-weight: 600;
+}
+
+.dev-btn.accent {
+    border-color: #66bb6a;
+    color: #b9f6ca;
+}
+
+.dev-btn.accent:hover {
+    background: #66bb6a;
+    color: #0b2910;
+}
+
+/* ----------------------------------------------------------------------------
+   3. INTERAKTIONS-PROMPT [E] & TOAST-NACHRICHTEN
+   ---------------------------------------------------------------------------- */
+#interaction-prompt {
+    position: fixed;
+    bottom: 38px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(18, 8, 34, 0.88);
+    border: 1.5px solid #ffbe64;
+    color: #ffecd2;
+    padding: 10px 22px;
+    border-radius: 40px;
+    font-size: 15px;
+    font-weight: 500;
+    display: none;
+    align-items: center;
+    gap: 10px;
+    z-index: 30;
+    box-shadow: 0 6px 25px rgba(255, 190, 100, 0.35);
+    animation: pulsePrompt 1.6s infinite ease-in-out;
+}
+
+.key-badge {
+    background: #ffbe64;
+    color: #1a0b2e;
+    font-weight: 800;
+    padding: 2px 9px;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+@keyframes pulsePrompt {
+    0%, 100% { transform: translateX(-50%) scale(1); }
+    50% { transform: translateX(-50%) scale(1.04); }
+}
+
+#toast-message {
+    position: fixed;
+    top: 110px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(25, 12, 45, 0.92);
+    border: 1.5px solid #ffbe64;
+    color: #ffecd2;
+    padding: 12px 26px;
+    border-radius: 30px;
+    font-size: 15px;
+    font-weight: 600;
+    z-index: 80;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    text-align: center;
+}
+
+#toast-message.show {
+    opacity: 1;
+}
+
+/* ----------------------------------------------------------------------------
+   4. MODALS ALLGEMEIN & BLUMEN-SCHIEBEPUZZLE (CHALLENGE 1)
+   ---------------------------------------------------------------------------- */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 4, 22, 0.82);
+    backdrop-filter: blur(12px);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 500;
+    padding: 20px;
+}
+
+.modal-backdrop.active {
+    display: flex;
+}
+
+.modal-card {
+    background: linear-gradient(155deg, rgba(44, 22, 72, 0.97), rgba(20, 9, 36, 0.99));
+    border: 2px solid rgba(255, 190, 100, 0.55);
+    border-radius: 22px;
+    padding: 28px 32px;
+    max-width: 520px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75);
+}
+
+.modal-card h2 {
+    color: #ffbe64;
+    font-size: 22px;
+    margin-bottom: 8px;
+}
+
+.modal-card p {
+    color: #e2d4f0;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.flower-card {
+    max-width: 490px;
+}
+
+.puzzle-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 14px 0 12px 0;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.28);
+    border-radius: 10px;
+    font-size: 13px;
+    color: #ffecd2;
+}
+
+.toolbar-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.slider-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 7px;
+    width: 342px;
+    height: 342px;
+    margin: 0 auto 16px auto;
+    background: #120722;
+    padding: 8px;
+    border-radius: 14px;
+    border: 2px solid rgba(255, 190, 100, 0.45);
+    box-shadow: inset 0 4px 16px rgba(0, 0, 0, 0.8);
+    transition: all 0.5s ease;
+}
+
+.slider-grid.solved {
+    gap: 0px;
+    padding: 4px;
+    border-color: #ffd54f;
+    box-shadow: 0 0 35px rgba(255, 213, 79, 0.55);
+}
+
+.flower-tile {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 1px solid rgba(255, 220, 150, 0.35);
+    transition: transform 0.14s ease, border-radius 0.4s ease;
+    background-size: cover;
+    background-position: center;
+}
+
+.slider-grid.solved .flower-tile {
+    border-radius: 0;
+    border: none;
+    cursor: default;
+}
+
+.flower-tile:hover:not(.empty):not(.solved-tile) {
+    transform: scale(0.97);
+    border-color: #ffbe64;
+}
+
+.flower-tile.empty {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px dashed rgba(255, 190, 100, 0.25);
+    cursor: default;
+}
+
+.tile-number {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    background: rgba(18, 8, 34, 0.82);
+    border: 1px solid #ffbe64;
+    color: #ffecd2;
+    font-size: 12px;
+    font-weight: 700;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none;
+    transition: opacity 0.25s;
+}
+
+.tile-number.hidden-num {
+    opacity: 0;
+}
+
+.reveal-banner {
+    background: rgba(255, 190, 100, 0.14);
+    border: 1px solid rgba(255, 190, 100, 0.5);
+    border-radius: 14px;
+    padding: 16px;
+    margin-top: 12px;
+    animation: fadeIn 0.5s ease;
+}
+
+.reveal-banner.hidden {
+    display: none;
+}
+
+.reveal-banner h3 {
+    color: #ffd54f;
+    font-size: 17px;
+    margin-bottom: 6px;
+}
+
+.reveal-banner p {
+    color: #fff;
+    font-size: 14px;
+    margin-bottom: 14px;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ----------------------------------------------------------------------------
+   5. QUIZ MODAL (CHALLENGE 3) & BUTTONS
+   ---------------------------------------------------------------------------- */
+.quiz-question-block {
+    text-align: left;
+    background: rgba(0, 0, 0, 0.28);
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin-top: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.quiz-question-block label {
+    display: block;
+    font-size: 13.5px;
+    color: #ffecd2;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.quiz-select {
+    width: 100%;
+    padding: 9px 12px;
+    border-radius: 8px;
+    background: #1a0d30;
+    border: 1px solid rgba(255, 190, 100, 0.45);
+    color: #fff;
+    font-size: 14px;
+    outline: none;
+}
+
+.error-msg {
+    color: #ff8a80 !important;
+    font-size: 13px;
+    min-height: 20px;
+    margin-top: 10px;
+}
+
+.modal-actions,
+.modal-footer {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.btn-primary,
+.btn-gold,
+.btn-secondary,
+.btn-small {
+    border: none;
+    border-radius: 24px;
+    padding: 10px 22px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-gold {
+    background: linear-gradient(135deg, #ffd54f, #ff9800);
+    color: #1c0b2b;
+    box-shadow: 0 4px 18px rgba(255, 179, 0, 0.4);
+}
+
+.btn-gold:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(255, 179, 0, 0.65);
+}
+
+.btn-primary {
+    background: #ffbe64;
+    color: #1c0b2b;
+    margin-top: 18px;
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.12);
+    color: #e2d4f0;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.22);
+}
+
+.btn-small {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffecd2;
+    padding: 5px 12px;
+    font-size: 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 190, 100, 0.3);
+}
+
+.btn-small:hover {
+    background: #ffbe64;
+    color: #1a0b2e;
+}
+
+/* ----------------------------------------------------------------------------
+   6. VIDEO MODAL (FINALE SCHATZTRUHE)
+   ---------------------------------------------------------------------------- */
+.video-modal-content {
+    background: #120824;
+    border: 2px solid #ffbe64;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 920px;
+    padding: 20px 24px;
+    box-shadow: 0 0 70px rgba(255, 190, 100, 0.35);
+}
+
+.video-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.video-header h2 {
+    color: #ffd54f;
+    font-size: 20px;
+}
+
+.close-video-btn {
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: #fff;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 22px;
+    cursor: pointer;
+}
+
+.close-video-btn:hover {
+    background: #ffbe64;
+    color: #120824;
+}
+
+.video-wrapper {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.video-fallback-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+    font-size: 12.5px;
+    color: #cbbbe0;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.file-label {
+    display: inline-block;
+    cursor: pointer;
+}
