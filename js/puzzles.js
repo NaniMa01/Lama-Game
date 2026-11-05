@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * PUZZLE MANAGER – BLUMEN-SCHIEBEPUZZLE, 4-STUFEN-BRÜCKE & ALTAR-QUIZ
+ * PUZZLE MANAGER – BLUMEN-SCHIEBEPUZZLE, 4-STUFEN-BRÜCKE & HIMMELS-FINALE
  * ============================================================================
  */
 
@@ -20,7 +20,7 @@ class PuzzleManager {
         this.puzzle2Solved = false;
         this.stepCooldown = false;
 
-        // Challenge 3: Altar-Quiz & Schatztruhe
+        // Challenge 3: Altar-Quiz & Himmels-Video
         this.puzzle3Solved = false;
         this.chestOpened = false;
 
@@ -190,7 +190,7 @@ class PuzzleManager {
     // ------------------------------------------------------------------------
     checkSteppingStones(playerPos) {
         if (this.puzzle2Solved || this.stepCooldown) return;
-        const totalSteps = PERSONAL_CONFIG.world2.solutionPath.length; // 4 Stufen
+        const totalSteps = PERSONAL_CONFIG.world2.solutionPath.length;
 
         for (const stone of this.game.worldBuilder.steppingStones) {
             const dx = Math.abs(playerPos.x - stone.position.x);
@@ -231,7 +231,6 @@ class PuzzleManager {
         this.puzzle2Solved = true;
         this.currentBridgeRow = PERSONAL_CONFIG.world2.solutionPath.length;
 
-        // Alle richtigen Steine grün leuchten lassen
         this.game.worldBuilder.steppingStones.forEach(stone => {
             const { row, number, topMat } = stone.userData;
             if (PERSONAL_CONFIG.world2.solutionPath[row] === number) {
@@ -240,7 +239,6 @@ class PuzzleManager {
             }
         });
 
-        // Flaggenmast auf dem Ziel-Plateau hochfahren lassen!
         this.game.worldBuilder.activateFlag();
         this.game.sound.chestFanfare();
         document.getElementById('world-objective').innerText = PERSONAL_CONFIG.world2.flagObjective;
@@ -259,7 +257,7 @@ class PuzzleManager {
     }
 
     // ------------------------------------------------------------------------
-    // CHALLENGE 3: ALTAR DER ERINNERUNGEN (WELT 3)
+    // CHALLENGE 3: ALTAR DER ERINNERUNGEN & HIMMELS-KINO (WELT 3)
     // ------------------------------------------------------------------------
     buildQuizDOM() {
         const container = document.getElementById('quiz-questions-container');
@@ -304,15 +302,44 @@ class PuzzleManager {
         const errEl = document.getElementById('quiz-error');
         if (allCorrect) {
             errEl.innerText = "";
-            this.puzzle3Solved = true;
-            this.game.sound.puzzleSolved();
-            this.game.closeAllModals();
-            this.game.worldBuilder.chestGroup.visible = true;
-            document.getElementById('world-objective').innerText = PERSONAL_CONFIG.world3.chestObjective;
-            this.game.showToast("✨ Die goldene Schatztruhe ist auf dem Gipfel erschienen! ✨");
+            this.completeSummitFinale();
         } else {
             this.game.sound.stepWrong();
             errEl.innerText = "Noch nicht alle Antworten stimmen. Überlege noch einmal!";
         }
+    }
+
+    /**
+     * Löst das Finale auf dem Gipfel aus:
+     * Schatztruhe erscheint & öffnet sich, Kamera richtet sich auf das Panorama aus,
+     * und im Himmel startet `lamavideo1` mit Ton!
+     */
+    completeSummitFinale() {
+        this.puzzle3Solved = true;
+        this.chestOpened = true;
+        this.game.closeAllModals();
+        this.game.sound.chestFanfare();
+
+        this.game.worldBuilder.chestGroup.visible = true;
+        document.getElementById('world-objective').innerText = PERSONAL_CONFIG.world3.chestObjective;
+
+        // Kamera in die perfekte Panorama-Position bringen
+        this.game.cameraAngle = 0;
+        this.game.cameraPitch = 0.16;
+        this.game.cameraDist = 12.5;
+
+        // Truhendeckel öffnen
+        let openProgress = 0;
+        const openInterval = setInterval(() => {
+            openProgress += 0.09;
+            this.game.worldBuilder.chestLidPivot.rotation.x = -Math.min(1.9, openProgress);
+            if (openProgress >= 1.9) {
+                clearInterval(openInterval);
+            }
+        }, 25);
+
+        // Himmels-Kino im Hintergrund aktivieren und lamavideo1 mit Ton abspielen!
+        this.game.worldBuilder.activateSkyVideo();
+        this.game.showToast("❤️ Alles Liebe zum Jubiläum! Schau hoch in den Sternenhimmel über den Bergen! ❤️");
     }
 }
