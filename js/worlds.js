@@ -235,14 +235,10 @@ class WorldBuilder {
         fallbackCanvas.width = 800;
         fallbackCanvas.height = 600;
         const fCtx = fallbackCanvas.getContext('2d');
-        const grad = fCtx.createLinearGradient(0, 0, 800, 600);
-        grad.addColorStop(0, '#ad1457');
-        grad.addColorStop(0.5, '#ff6f00');
-        grad.addColorStop(1, '#4a148c');
-        fCtx.fillStyle = grad;
+        fCtx.fillStyle = '#4a148c';
         fCtx.fillRect(0, 0, 800, 600);
         fCtx.fillStyle = '#ffffff';
-        fCtx.font = 'bold 50px "Segoe UI", sans-serif';
+        fCtx.font = 'bold 48px sans-serif';
         fCtx.textAlign = 'center';
         fCtx.fillText('Erinnerung 1', 400, 300);
 
@@ -281,8 +277,7 @@ class WorldBuilder {
             side: THREE.DoubleSide,
             depthWrite: false
         });
-        const scanOverlay = new THREE.Mesh(new THREE.PlaneGeometry(5.24, 3.94), scanMat);
-        this.hologramGroup.add(scanOverlay);
+        this.hologramGroup.add(new THREE.Mesh(new THREE.PlaneGeometry(5.24, 3.94), scanMat));
 
         const borderMat = new THREE.MeshBasicMaterial({ color: 0x80deea });
         const topBar = new THREE.Mesh(new THREE.BoxGeometry(5.45, 0.1, 0.1), borderMat);
@@ -321,11 +316,11 @@ class WorldBuilder {
 
     activateHologram() {
         this.hologramActive = true;
-        this.hologramGroup.visible = true;
+        if (this.hologramGroup) this.hologramGroup.visible = true;
     }
 
     // ------------------------------------------------------------------------
-    // WELT 2: DÄMMERUNGS-SCHLUCHT (4 Säulen, 4 Stufen & Ausfahrender Flaggenmast)
+    // WELT 2: DÄMMERUNGS-SCHLUCHT (4 Säulen, 4 Stufen & Flaggenmast)
     // ------------------------------------------------------------------------
     buildWorld2() {
         const group = new THREE.Group();
@@ -438,7 +433,7 @@ class WorldBuilder {
         ctx.lineWidth = 8;
         ctx.strokeRect(8, 8, 112, 112);
         ctx.fillStyle = '#ffecd2';
-        ctx.font = 'bold 72px "Segoe UI", sans-serif';
+        ctx.font = 'bold 72px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(String(pillarNumber), 64, 68);
@@ -528,7 +523,7 @@ class WorldBuilder {
         ctx.lineWidth = 16;
         ctx.strokeRect(20, 20, 760, 560);
         ctx.fillStyle = '#ffecd2';
-        ctx.font = 'bold 48px "Segoe UI", sans-serif';
+        ctx.font = 'bold 46px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText('Erinnerung 2 (erinnerung2.jpg)', 400, 300);
 
@@ -591,9 +586,7 @@ class WorldBuilder {
 
     activateFlag() {
         this.flagActive = true;
-        if (this.flagpoleRisingGroup) {
-            this.flagpoleRisingGroup.visible = true;
-        }
+        if (this.flagpoleRisingGroup) this.flagpoleRisingGroup.visible = true;
     }
 
     resetFlag() {
@@ -610,13 +603,14 @@ class WorldBuilder {
     }
 
     // ------------------------------------------------------------------------
-    // WELT 3: DER STERNENHIMMEL-GIPFEL (Detailverliebtes Hochgebirgs-Panorama
-    //         & Riesiges Himmels-Kino für lamavideo1 mit Ton)
+    // WELT 3: DER STERNENHIMMEL-GIPFEL (Panorama & Himmels-Kino)
     // ------------------------------------------------------------------------
     buildWorld3() {
         const group = new THREE.Group();
 
-        const sanctuaryPBR = TextureFactory.createSummitSanctuaryFloor();
+        const sanctuaryPBR = (typeof TextureFactory.createSummitSanctuaryFloor === 'function')
+            ? TextureFactory.createSummitSanctuaryFloor()
+            : TextureFactory.createPBRSet('slate', 6, 6);
         const slatePBR = TextureFactory.createPBRSet('slate', 4, 4);
         const alpinePeakPBR = TextureFactory.createPBRSet('alpinePeak', 3, 3);
         const snowPBR = TextureFactory.createPBRSet('snow', 4, 4);
@@ -643,7 +637,6 @@ class WorldBuilder {
             roughness: 0.22
         });
 
-        // 1. Haupt-Gipfelplateau mit gemeißeltem Naturstein-Sternen-Boden
         const summitDisc = new THREE.Mesh(
             new THREE.CylinderGeometry(23, 25, 1.8, 64),
             new THREE.MeshStandardMaterial({
@@ -658,40 +651,27 @@ class WorldBuilder {
         summitDisc.receiveShadow = true;
         group.add(summitDisc);
 
-        // Massiver, schroffer Felsunterbau des Gipfels, der steil in die Tiefe abfällt
-        const cliffCore = new THREE.Mesh(
-            new THREE.ConeGeometry(26, 36, 28),
-            rockMat
-        );
+        const cliffCore = new THREE.Mesh(new THREE.ConeGeometry(26, 36, 28), rockMat);
         cliffCore.rotation.x = Math.PI;
         cliffCore.position.y = -19.5;
         group.add(cliffCore);
 
-        // Zerklüftete Felsvorsprünge & Schneewächten rund um die Gipfelkante
         for (let i = 0; i < 20; i++) {
             const angle = (i / 20) * Math.PI * 2;
-            // Aussparung im Norden (Blick frei auf das Panorama & Himmels-Kino)
             const isNorthVista = (angle > Math.PI * 1.32 && angle < Math.PI * 1.68);
             const radius = 22.8 + (i % 3) * 1.2;
             const cragX = Math.cos(angle) * radius;
             const cragZ = Math.sin(angle) * radius;
 
             const cragHeight = isNorthVista ? 3.5 : (5.5 + (i % 4) * 1.8);
-            const crag = new THREE.Mesh(
-                new THREE.ConeGeometry(3.2, cragHeight, 7),
-                rockMat
-            );
+            const crag = new THREE.Mesh(new THREE.ConeGeometry(3.2, cragHeight, 7), rockMat);
             crag.position.set(cragX, -1.8, cragZ);
             crag.rotation.y = angle;
             crag.rotation.z = (i % 2 === 0 ? 0.15 : -0.15);
             group.add(crag);
 
-            // Schneepolster am Fuß der Felsen
             if (i % 2 === 0) {
-                const snowDrift = new THREE.Mesh(
-                    new THREE.SphereGeometry(2.1, 14, 10),
-                    snowMat
-                );
+                const snowDrift = new THREE.Mesh(new THREE.SphereGeometry(2.1, 14, 10), snowMat);
                 snowDrift.scale.set(1.4, 0.32, 0.9);
                 snowDrift.position.set(Math.cos(angle) * 20.5, 0.05, Math.sin(angle) * 20.5);
                 snowDrift.rotation.y = -angle;
@@ -700,33 +680,21 @@ class WorldBuilder {
             }
         }
 
-        // 2.Goldener Kompass-Ring & Aussichts-Empore im Norden des Gipfels
-        const compassRing = new THREE.Mesh(
-            new THREE.TorusGeometry(9.5, 0.12, 12, 64),
-            goldMat
-        );
+        const compassRing = new THREE.Mesh(new THREE.TorusGeometry(9.5, 0.12, 12, 64), goldMat);
         compassRing.rotation.x = Math.PI / 2;
         compassRing.position.y = 0.02;
         group.add(compassRing);
 
-        // Erhabenes Podest für die Schatztruhe mit bestem Blick auf das Panorama
-        const chestDais = new THREE.Mesh(
-            new THREE.CylinderGeometry(4.2, 4.8, 0.36, 32),
-            rockMat
-        );
+        const chestDais = new THREE.Mesh(new THREE.CylinderGeometry(4.2, 4.8, 0.36, 32), rockMat);
         chestDais.position.set(0, 0.18, -12.5);
         chestDais.receiveShadow = true;
         group.add(chestDais);
 
-        const daisGoldTrim = new THREE.Mesh(
-            new THREE.TorusGeometry(4.3, 0.09, 12, 48),
-            goldMat
-        );
+        const daisGoldTrim = new THREE.Mesh(new THREE.TorusGeometry(4.3, 0.09, 12, 48), goldMat);
         daisGoldTrim.rotation.x = Math.PI / 2;
         daisGoldTrim.position.set(0, 0.36, -12.5);
         group.add(daisGoldTrim);
 
-        // 3. Vier kunstvolle goldene Feuerschalen (Braziers) mit warmem Punktlicht
         const brazierCoords = [[-6.2, -3.5], [6.2, -3.5], [-6.8, -11.5], [6.8, -11.5]];
         brazierCoords.forEach(([bx, bz], idx) => {
             const brazier = this.createFireBrazier(rockMat, goldMat, idx);
@@ -734,10 +702,9 @@ class WorldBuilder {
             group.add(brazier);
         });
 
-        // 4. Leuchtende Gletscher-Kristall-Cluster am Rand
         for (let i = 0; i < 8; i++) {
             const angle = (i / 8) * Math.PI * 2 + 0.25;
-            if (Math.sin(angle) < -0.75) continue; // Nord-Sichtachse frei halten
+            if (Math.sin(angle) < -0.75) continue;
             const cx = Math.cos(angle) * 17.5;
             const cz = Math.sin(angle) * 17.5;
 
@@ -771,11 +738,9 @@ class WorldBuilder {
             group.add(cluster);
         }
 
-        // 5. DAS HEFTIGE 360°-HOCHGEBIRGS-PANORAMA & NEBELMEER
         this.buildAlpinePanorama(group, alpinePeakPBR);
         this.buildCloudSeaAndStars(group);
 
-        // 6. Altar der Erinnerungen (für Rätsel 3)
         const altar = this.createStoneTablet(slatePBR);
         altar.position.set(0, 0, -6);
         group.add(altar);
@@ -787,7 +752,6 @@ class WorldBuilder {
             label: 'Altar der Erinnerungen öffnen'
         });
 
-        // 7. Die Goldene Schatztruhe
         this.chestGroup = new THREE.Group();
         this.chestGroup.position.set(0, 0.36, -12.5);
         this.chestGroup.visible = false;
@@ -829,10 +793,9 @@ class WorldBuilder {
             pos: new THREE.Vector3(0, 0, -12.5),
             radius: 4.0,
             type: 'treasure_chest',
-            label: 'Himmels-Video neu starten / im Vollbild öffnen 🎬'
+            label: 'Himmels-Video neu starten 🎬'
         });
 
-        // 8. RIESIGE HIMMELS-PROJEKTION FÜR LAMAVIDEO1 (IM HINTERGRUND AM HIMMEL)
         this.buildSkyVideoCinema(group);
 
         group.visible = false;
@@ -840,9 +803,6 @@ class WorldBuilder {
         this.worlds.push(group);
     }
 
-    /**
-     * Erzeugt eine goldene Feuerschale mit animierter Flamme
-     */
     createFireBrazier(rockMat, goldMat, idx) {
         const g = new THREE.Group();
         const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.65, 1.6, 12), rockMat);
@@ -873,10 +833,6 @@ class WorldBuilder {
         return g;
     }
 
-    /**
-     * Baut das gewaltige 360°-Alpen-Bergpanorama aus 44 individuell geformten
-     * 3D-Gipfeln in zwei Entfernungsringen.
-     */
     buildAlpinePanorama(worldGroup, alpinePeakPBR) {
         const peakMat = new THREE.MeshStandardMaterial({
             map: alpinePeakPBR.map,
@@ -886,7 +842,6 @@ class WorldBuilder {
             metalness: 0.08
         });
 
-        // Hilfsfunktion für einen realistisch zerklüfteten 3D-Berggipfel
         const createJaggedMountain = (radiusBottom, height, seed) => {
             const geo = new THREE.ConeGeometry(radiusBottom, height, 14, 10);
             const pos = geo.attributes.position;
@@ -894,17 +849,15 @@ class WorldBuilder {
                 const vx = pos.getX(i);
                 const vy = pos.getY(i);
                 const vz = pos.getZ(i);
-                const normY = (vy + height / 2) / height; // 0 unten, 1 Spitze
+                const normY = (vy + height / 2) / height;
 
                 if (normY < 0.96) {
                     const angle = Math.atan2(vz, vx);
-                    // Schroffe Grate und Felskanten modellieren
                     const ridgeFactor = Math.sin(angle * 5 + seed) * 0.18 + Math.cos(angle * 8 - seed * 2) * 0.1;
                     const scale = 1.0 + ridgeFactor * (1.0 - normY * 0.5);
                     pos.setX(i, vx * scale);
                     pos.setZ(i, vz * scale);
                 } else {
-                    // Markante Gipfelspitze (Matterhorn-Knick)
                     pos.setX(i, vx + Math.sin(seed) * 1.8);
                 }
             }
@@ -912,14 +865,12 @@ class WorldBuilder {
             return new THREE.Mesh(geo, peakMat);
         };
 
-        // Innerer Gebirgskranz (20 markante Hochgipfel)
         for (let i = 0; i < 20; i++) {
             const angle = (i / 20) * Math.PI * 2;
             const dist = 105 + (i % 3) * 14;
             const mx = Math.cos(angle) * dist;
             const mz = Math.sin(angle) * dist;
 
-            // Im Norden rahmen zwei majestätische Wächter-Berge das Himmels-Video ein
             const isVideoCenter = (mx > -28 && mx < 28 && mz < -60);
             const height = isVideoCenter ? (46 + (i % 2) * 8) : (64 + (i % 4) * 16);
             const width = 34 + (i % 3) * 8;
@@ -930,7 +881,6 @@ class WorldBuilder {
             worldGroup.add(mtn);
         }
 
-        // Äußerer Horizont-Gebirgskranz (24 gigantische Fern-Massive)
         for (let i = 0; i < 24; i++) {
             const angle = (i / 24) * Math.PI * 2 + 0.13;
             const dist = 195 + (i % 2) * 20;
@@ -946,67 +896,56 @@ class WorldBuilder {
         }
     }
 
-    /**
-     * Erzeugt das wogende Nebelmeer unterhalb des Gipfels sowie 1.200 Sterne
-     * und sanft schwebende Schneekristalle in der Luft.
-     */
     buildCloudSeaAndStars(worldGroup) {
-        const cloudTex = TextureFactory.createCloudSeaTexture();
+        if (typeof TextureFactory.createCloudSeaTexture === 'function') {
+            const cloudTex = TextureFactory.createCloudSeaTexture();
+            for (let layer = 0; layer < 2; layer++) {
+                const cloudRing = new THREE.Group();
+                const count = 18;
+                const radius = 58 + layer * 36;
+                const yPos = -8.5 - layer * 5.5;
 
-        // 2 Schichten Wolkenmeer rund um den Gipfel in der Tiefe
-        for (let layer = 0; layer < 2; layer++) {
-            const cloudRing = new THREE.Group();
-            const count = 18;
-            const radius = 58 + layer * 36;
-            const yPos = -8.5 - layer * 5.5;
-
-            for (let i = 0; i < count; i++) {
-                const angle = (i / count) * Math.PI * 2;
-                const puff = new THREE.Mesh(
-                    new THREE.PlaneGeometry(55, 55),
-                    new THREE.MeshBasicMaterial({
-                        map: cloudTex,
-                        transparent: true,
-                        opacity: layer === 0 ? 0.55 : 0.4,
-                        depthWrite: false,
-                        side: THREE.DoubleSide
-                    })
-                );
-                puff.rotation.x = -Math.PI / 2;
-                puff.rotation.z = angle + i;
-                puff.position.set(
-                    Math.cos(angle) * radius,
-                    yPos + (i % 3) * 0.6,
-                    Math.sin(angle) * radius
-                );
-                cloudRing.add(puff);
+                for (let i = 0; i < count; i++) {
+                    const angle = (i / count) * Math.PI * 2;
+                    const puff = new THREE.Mesh(
+                        new THREE.PlaneGeometry(55, 55),
+                        new THREE.MeshBasicMaterial({
+                            map: cloudTex,
+                            transparent: true,
+                            opacity: layer === 0 ? 0.55 : 0.4,
+                            depthWrite: false,
+                            side: THREE.DoubleSide
+                        })
+                    );
+                    puff.rotation.x = -Math.PI / 2;
+                    puff.rotation.z = angle + i;
+                    puff.position.set(Math.cos(angle) * radius, yPos + (i % 3) * 0.6, Math.sin(angle) * radius);
+                    cloudRing.add(puff);
+                }
+                worldGroup.add(cloudRing);
+                this.cloudLayers.push(cloudRing);
             }
-            worldGroup.add(cloudRing);
-            this.cloudLayers.push(cloudRing);
         }
 
-        // 1.200 funkelnde Sterne am hohen Nachthimmel über dem Gipfel
         const starGeo = new THREE.BufferGeometry();
         const starCount = 1200;
         const starPositions = new Float32Array(starCount * 3);
         for (let i = 0; i < starCount; i++) {
             const theta = Math.random() * Math.PI * 2;
-            const phi = Math.random() * Math.PI * 0.46; // Obere Himmelshälfte
+            const phi = Math.random() * Math.PI * 0.46;
             const r = 340 + Math.random() * 40;
             starPositions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
             starPositions[i * 3 + 1] = r * Math.cos(phi) + 10;
             starPositions[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
         }
         starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-        const starMat = new THREE.PointsMaterial({
+        worldGroup.add(new THREE.Points(starGeo, new THREE.PointsMaterial({
             color: 0xfff8e7,
             size: 1.9,
             transparent: true,
             opacity: 0.9
-        });
-        worldGroup.add(new THREE.Points(starGeo, starMat));
+        })));
 
-        // Schwebender Gipfel-Schnee / Sternenstaub direkt auf dem Plateau
         const snowGeo = new THREE.BufferGeometry();
         const snowCount = 220;
         const snowPos = new Float32Array(snowCount * 3);
@@ -1018,29 +957,18 @@ class WorldBuilder {
         snowGeo.setAttribute('position', new THREE.BufferAttribute(snowPos, 3));
         this.snowParticles = new THREE.Points(
             snowGeo,
-            new THREE.PointsMaterial({
-                color: 0xe1f5fe,
-                size: 0.28,
-                transparent: true,
-                opacity: 0.75
-            })
+            new THREE.PointsMaterial({ color: 0xe1f5fe, size: 0.28, transparent: true, opacity: 0.75 })
         );
         worldGroup.add(this.snowParticles);
     }
 
-    /**
-     * Erstellt die riesige Himmels-Kino-Projektion im Hintergrund des Gipfels,
-     * die nach dem Lösen der 3. Aufgabe `lamavideo1` inklusive Ton abspielt.
-     */
     buildSkyVideoCinema(worldGroup) {
         this.skyCinemaGroup = new THREE.Group();
-        // Groß im Himmel direkt hinter dem Gipfel über den Bergen positioniert
         this.skyCinemaGroup.position.set(0, 15.2, -42);
-        this.skyCinemaGroup.rotation.x = 0.08; // Leicht zum Betrachter auf dem Gipfel geneigt
+        this.skyCinemaGroup.rotation.x = 0.08;
         this.skyCinemaGroup.visible = false;
         this.skyCinemaGroup.scale.set(0.01, 0.01, 0.01);
 
-        // HTML5 Video-Element für lamavideo1 (mit Ton!) erstellen
         const vid = document.createElement('video');
         vid.id = 'sky-cinema-video';
         vid.crossOrigin = 'anonymous';
@@ -1050,14 +978,12 @@ class WorldBuilder {
         vid.volume = 1.0;
         vid.preload = 'auto';
 
-        // Smart-Quellen: sucht automatisch nach lamavideo1.mp4, .mov, .webm & video.mp4
         const baseUrl = (PERSONAL_CONFIG.world3.skyVideoUrl || 'lamavideo1.mp4').replace(/\.(mp4|mov|webm)$/i, '');
         const sources = [
             { src: `${baseUrl}.mp4`, type: 'video/mp4' },
             { src: `${baseUrl}.mov`, type: 'video/quicktime' },
             { src: `${baseUrl}.MOV`, type: 'video/mp4' },
-            { src: `${baseUrl}.MP4`, type: 'video/mp4' },
-            { src: 'video.mp4', type: 'video/mp4' }
+            { src: `${baseUrl}.MP4`, type: 'video/mp4' }
         ];
         sources.forEach(s => {
             const sourceEl = document.createElement('source');
@@ -1067,17 +993,14 @@ class WorldBuilder {
         });
 
         this.skyVideoElement = vid;
-
         this.skyVideoTexture = new THREE.VideoTexture(vid);
         this.skyVideoTexture.minFilter = THREE.LinearFilter;
         this.skyVideoTexture.magFilter = THREE.LinearFilter;
         this.skyVideoTexture.encoding = THREE.sRGBEncoding;
 
-        // Gigantische 16:9 Himmels-Projektionsfläche (36 x 20.25 Meter im Himmel!)
         const screenWidth = 36.0;
         const screenHeight = 20.25;
 
-        // Sanfter himmlischer Aura-Schein hinter dem Video
         const auraSprite = new THREE.Sprite(new THREE.SpriteMaterial({
             map: TextureFactory.createGlowTexture('#ffca64'),
             blending: THREE.AdditiveBlending,
@@ -1088,7 +1011,6 @@ class WorldBuilder {
         auraSprite.scale.set(screenWidth * 1.45, screenHeight * 1.45, 1);
         this.skyCinemaGroup.add(auraSprite);
 
-        // Edler goldener Himmels-Rahmen um das Video
         const frameMat = new THREE.MeshBasicMaterial({ color: 0xffdf80 });
         const topFrame = new THREE.Mesh(new THREE.BoxGeometry(screenWidth + 0.8, 0.35, 0.3), frameMat);
         topFrame.position.y = screenHeight / 2 + 0.18;
@@ -1100,17 +1022,12 @@ class WorldBuilder {
         rightFrame.position.x = screenWidth / 2 + 0.18;
         this.skyCinemaGroup.add(topFrame, botFrame, leftFrame, rightFrame);
 
-        // Die eigentliche Video-Fläche im Himmel
         const screenMesh = new THREE.Mesh(
             new THREE.PlaneGeometry(screenWidth, screenHeight),
-            new THREE.MeshBasicMaterial({
-                map: this.skyVideoTexture,
-                side: THREE.DoubleSide
-            })
+            new THREE.MeshBasicMaterial({ map: this.skyVideoTexture, side: THREE.DoubleSide })
         );
         this.skyCinemaGroup.add(screenMesh);
 
-        // Lichtkegel von der Schatztruhe hoch zum Himmels-Video
         const beamGeo = new THREE.ConeGeometry(8.5, 28, 32, 1, true);
         const beamMat = new THREE.MeshBasicMaterial({
             color: 0xffd54f,
@@ -1129,27 +1046,17 @@ class WorldBuilder {
         this.createSkyVideoHUDControls();
     }
 
-    /**
-     * Erzeugt eine dezente Steuerleiste unten rechts, sobald das Himmels-Video läuft
-     * (damit man Ton, Pause, Neustart oder eine lokale Testdatei jederzeit steuern kann).
-     */
     createSkyVideoHUDControls() {
         if (document.getElementById('sky-video-controls')) return;
         const bar = document.createElement('div');
         bar.id = 'sky-video-controls';
-        bar.style.cssText = `
-            position: fixed; bottom: 22px; right: 22px; z-index: 95;
-            background: rgba(20, 9, 38, 0.88); border: 1.5px solid #ffbe64;
-            backdrop-filter: blur(10px); padding: 10px 14px; border-radius: 14px;
-            display: none; align-items: center; gap: 8px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.6);
-        `;
+        bar.style.cssText = 'position:fixed;bottom:22px;right:22px;z-index:95;background:rgba(20,9,38,0.88);border:1.5px solid #ffbe64;backdrop-filter:blur(10px);padding:10px 14px;border-radius:14px;display:none;align-items:center;gap:8px;box-shadow:0 8px 30px rgba(0,0,0,0.6);';
         bar.innerHTML = `
-            <span style="font-size:12px; color:#ffecd2; font-weight:700; margin-right:4px;">🎬 Himmels-Kino:</span>
+            <span style="font-size:12px;color:#ffecd2;font-weight:700;margin-right:4px;">🎬 Himmels-Kino:</span>
             <button class="btn-small" id="sky-play-btn">⏸ Pause</button>
             <button class="btn-small" id="sky-mute-btn">🔊 Ton AN</button>
             <button class="btn-small" id="sky-restart-btn">↻ Neustart</button>
-            <label class="btn-small" style="cursor:pointer; margin:0;">
+            <label class="btn-small" style="cursor:pointer;margin:0;">
                 📂 Video wählen
                 <input type="file" id="sky-file-picker" accept="video/*" style="display:none;">
             </label>
@@ -1194,14 +1101,9 @@ class WorldBuilder {
         };
     }
 
-    /**
-     * Startet das große Himmels-Video (lamavideo1) im Hintergrund mit Ton!
-     */
     activateSkyVideo() {
         this.skyCinemaActive = true;
-        if (this.skyCinemaGroup) {
-            this.skyCinemaGroup.visible = true;
-        }
+        if (this.skyCinemaGroup) this.skyCinemaGroup.visible = true;
         const ctrlBar = document.getElementById('sky-video-controls');
         if (ctrlBar) ctrlBar.style.display = 'flex';
 
@@ -1210,18 +1112,13 @@ class WorldBuilder {
             this.skyVideoElement.volume = 1.0;
             const playPromise = this.skyVideoElement.play();
             if (playPromise !== undefined) {
-                playPromise.catch(() => {
-                    // Falls Browser beim ersten Versuch blockiert, kurz Ton-Button signalisieren
-                    console.log('Bitte einmal klicken, falls Browser Autoplay mit Ton verzögert.');
-                });
+                playPromise.catch(() => {});
             }
         }
     }
 
     stopSkyVideo() {
-        if (this.skyVideoElement) {
-            this.skyVideoElement.pause();
-        }
+        if (this.skyVideoElement) this.skyVideoElement.pause();
         const ctrlBar = document.getElementById('sky-video-controls');
         if (ctrlBar) ctrlBar.style.display = 'none';
     }
@@ -1275,7 +1172,6 @@ class WorldBuilder {
             this.altarGem.position.y = 2.55 + Math.sin(time * 2.5) * 0.15;
         }
 
-        // Welt 1: Schwebendes 3D-Hologramm
         if (this.hologramActive && this.hologramGroup) {
             this.hologramScale = Math.min(1.0, this.hologramScale + 0.035);
             this.hologramGroup.scale.setScalar(this.hologramScale);
@@ -1290,7 +1186,6 @@ class WorldBuilder {
             });
         }
 
-        // Welt 2: Flaggenmast & wehende Flagge
         if (this.flagActive && this.flagpoleRisingGroup) {
             this.flagPoleProgress = Math.min(1.0, this.flagPoleProgress + 0.018);
             const easeOut = 1 - Math.pow(1 - this.flagPoleProgress, 3);
@@ -1315,7 +1210,6 @@ class WorldBuilder {
             }
         }
 
-        // Welt 3: Nebelmeer, flackernde Feuerschalen, Schneeflocken & Himmels-Kino
         this.cloudLayers.forEach((layer, idx) => {
             layer.rotation.y = time * (idx === 0 ? 0.025 : -0.018);
         });
@@ -1350,3 +1244,4 @@ class WorldBuilder {
         });
     }
 }
+// === ENDE VON WORLDS.JS ===
