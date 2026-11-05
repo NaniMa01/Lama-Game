@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * TEXTURE FACTORY – PROZEDURALE PBR-OBERFLÄCHEN & BLUMEN-MOSAIK-GENERATOR
+ * TEXTURE FACTORY – PROZEDURALE PBR-OBERFLÄCHEN, GIPFEL-RELIEF & BLUMEN-MOSAIK
  * ============================================================================
  */
 
@@ -42,7 +42,7 @@ class TextureFactory {
     }
 
     static createPBRSet(type, repeatX = 4, repeatY = 4) {
-        const size = 256;
+        const size = (type === 'alpinePeak' || type === 'slate' || type === 'snow') ? 512 : 256;
         const colorCanvas = document.createElement('canvas');
         const bumpCanvas = document.createElement('canvas');
         colorCanvas.width = bumpCanvas.width = size;
@@ -57,8 +57,9 @@ class TextureFactory {
             for (let x = 0; x < size; x++) {
                 const u = x / size, v = y / size;
                 const idx = (y * size + x) * 4;
-                const n = this.fbm(u, v, 4, 8, type.length * 13);
-                const detail = this.fbm(u, v, 3, 24, 99);
+                const n = this.fbm(u, v, 5, 8, type.length * 13);
+                const detail = this.fbm(u, v, 4, 24, 99);
+                const micro = this.fbm(u, v, 2, 64, 177);
 
                 let r = 128, g = 128, b = 128, h = n * 255;
 
@@ -76,8 +77,36 @@ class TextureFactory {
                     b = 58 + strata * 25;
                     h = (strata * 0.6 + detail * 0.4) * 255;
                 } else if (type === 'slate') {
-                    const sVal = 48 + n * 45 + detail * 20;
-                    r = sVal * 0.95; g = sVal * 0.92; b = sVal * 1.25;
+                    // Edler dunkler Alpengneis mit feinen Quarzadern & Raureif-Spuren
+                    const vein = Math.pow(Math.abs(Math.sin((u * 6 + v * 4 + n * 2.5) * Math.PI)), 14);
+                    const frost = Math.max(0, (detail - 0.62) * 2.8);
+                    const base = 36 + n * 42 + (micro - 0.5) * 18;
+                    r = base * 0.92 + vein * 130 + frost * 160;
+                    g = base * 0.96 + vein * 135 + frost * 175;
+                    b = base * 1.22 + vein * 150 + frost * 195;
+                    h = (n * 0.55 + detail * 0.35 + vein * 0.25) * 255;
+                } else if (type === 'alpinePeak') {
+                    // Hochgebirgs-Fels mit realistischen Schneefeldern und schroffen Graten
+                    const ridge = Math.abs(n - 0.5) * 2.0;
+                    const snowMask = Math.min(1, Math.max(0, (1.0 - v * 1.15) + (n - 0.42) * 1.35 + (detail - 0.5) * 0.5));
+                    const rockVal = 38 + ridge * 58 + micro * 22;
+                    const snowR = 230 + micro * 25;
+                    const snowG = 238 + micro * 17;
+                    const snowB = 252;
+
+                    const blend = Math.pow(snowMask, 1.6);
+                    r = rockVal * (1 - blend) + snowR * blend;
+                    g = rockVal * 1.02 * (1 - blend) + snowG * blend;
+                    b = rockVal * 1.18 * (1 - blend) + snowB * blend;
+                    h = (ridge * 0.6 + detail * 0.4) * 255;
+                } else if (type === 'snow') {
+                    // Glitzernder Firnschnee
+                    const drift = Math.sin(u * Math.PI * 10 + n * 4) * 0.5 + 0.5;
+                    const sparkle = micro > 0.78 ? 25 : 0;
+                    r = 222 + drift * 22 + sparkle;
+                    g = 232 + drift * 18 + sparkle;
+                    b = 248 + drift * 7 + sparkle;
+                    h = (drift * 0.6 + detail * 0.4) * 255;
                 } else if (type === 'wool') {
                     const curls = Math.sin(u * 60 + n * 12) * Math.cos(v * 60 + detail * 12) * 0.5 + 0.5;
                     r = 232 + curls * 20;
@@ -119,8 +148,121 @@ class TextureFactory {
     }
 
     /**
-     * Erzeugt die Boho-/Anden-Satteldecken-Textur für das Lama
+     * Erzeugt das kunstvoll gemeißelte Gipfel-Heiligtum-Bodenrelief (512x512)
+     * mit radialen Natursteinplatten, gefrorenem Schnee am Rand und goldenen Sternenlinien.
      */
+    static createSummitSanctuaryFloor() {
+        const size = 512;
+        const colorCanvas = document.createElement('canvas');
+        const bumpCanvas = document.createElement('canvas');
+        colorCanvas.width = bumpCanvas.width = size;
+        colorCanvas.height = bumpCanvas.height = size;
+
+        const cCtx = colorCanvas.getContext('2d');
+        const bCtx = bumpCanvas.getContext('2d');
+        const cImg = cCtx.createImageData(size, size);
+        const bImg = bCtx.createImageData(size, size);
+
+        const cx = size / 2, cy = size / 2;
+
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                const u = x / size, v = y / size;
+                const dx = (x - cx) / (size / 2);
+                const dy = (y - cy) / (size / 2);
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const angle = Math.atan2(dy, dx);
+
+                const n = this.fbm(u, v, 5, 10, 42);
+                const fine = this.fbm(u, v, 3, 32, 108);
+
+                // Radiale Steinplatten-Fugen
+                const ringJoint = Math.abs(Math.sin(dist * Math.PI * 7));
+                const spokeJoint = Math.abs(Math.sin(angle * 12 + Math.floor(dist * 7) * 0.5));
+                const isJoint = (ringJoint < 0.06 || spokeJoint < 0.045);
+
+                // Goldene Himmels-Intarsie im Zentrum & auf zwei Ringen
+                const isGoldInlay = (Math.abs(dist - 0.38) < 0.012 || Math.abs(dist - 0.68) < 0.012);
+
+                // Schnee-Verwehungen am äußeren Gipfelrand
+                const edgeSnow = Math.max(0, (dist - 0.62) * 2.2 + (n - 0.45) * 0.8);
+
+                let r = 42 + n * 38 + fine * 16;
+                let g = 46 + n * 40 + fine * 18;
+                let b = 64 + n * 48 + fine * 22;
+                let h = 140 + n * 80;
+
+                if (isJoint) {
+                    // Fugen mit leichtem Eis/Schnee gefüllt
+                    r = 110 + fine * 60;
+                    g = 125 + fine * 65;
+                    b = 155 + fine * 70;
+                    h = 35;
+                } else if (isGoldInlay) {
+                    r = 235; g = 188; b = 85;
+                    h = 220;
+                }
+
+                if (edgeSnow > 0.35) {
+                    const sb = Math.min(1, (edgeSnow - 0.35) * 1.8);
+                    r = r * (1 - sb) + (225 + fine * 25) * sb;
+                    g = g * (1 - sb) + (235 + fine * 20) * sb;
+                    b = b * (1 - sb) + 252 * sb;
+                    h = h * (1 - sb) + 210 * sb;
+                }
+
+                const idx = (y * size + x) * 4;
+                cImg.data[idx] = Math.min(255, Math.max(0, r));
+                cImg.data[idx + 1] = Math.min(255, Math.max(0, g));
+                cImg.data[idx + 2] = Math.min(255, Math.max(0, b));
+                cImg.data[idx + 3] = 255;
+
+                bImg.data[idx] = bImg.data[idx + 1] = bImg.data[idx + 2] = Math.min(255, Math.max(0, h));
+                bImg.data[idx + 3] = 255;
+            }
+        }
+
+        cCtx.putImageData(cImg, 0, 0);
+        bCtx.putImageData(bImg, 0, 0);
+
+        const map = new THREE.CanvasTexture(colorCanvas);
+        const bumpMap = new THREE.CanvasTexture(bumpCanvas);
+        map.encoding = THREE.sRGBEncoding;
+        return { map, bumpMap };
+    }
+
+    /**
+     * Erzeugt eine weiche, volumetrisch wirkende Nebelmeer-Textur (für das Wolkenmeer unter dem Gipfel)
+     */
+    static createCloudSeaTexture() {
+        const size = 256;
+        const c = document.createElement('canvas');
+        c.width = c.height = size;
+        const ctx = c.getContext('2d');
+        const img = ctx.createImageData(size, size);
+
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                const u = x / size, v = y / size;
+                const dx = (u - 0.5) * 2, dy = (v - 0.5) * 2;
+                const radialFade = Math.max(0, 1 - Math.sqrt(dx * dx + dy * dy));
+                const n = this.fbm(u, v, 4, 6, 303);
+                const billow = Math.pow(n, 1.3) * radialFade;
+
+                const idx = (y * size + x) * 4;
+                // Sanfte Abendrot-/Violett-Wolkenfärbung
+                img.data[idx] = 215 + n * 35;
+                img.data[idx + 1] = 175 + n * 40;
+                img.data[idx + 2] = 220 + n * 35;
+                img.data[idx + 3] = Math.min(210, Math.floor(billow * 240));
+            }
+        }
+        ctx.putImageData(img, 0, 0);
+        const tex = new THREE.CanvasTexture(c);
+        tex.encoding = THREE.sRGBEncoding;
+        return tex;
+    }
+
     static createSaddleTexture() {
         const c = document.createElement('canvas');
         c.width = 256; c.height = 256;
@@ -150,9 +292,6 @@ class TextureFactory {
         return tex;
     }
 
-    /**
-     * Erzeugt ein weiches Glow-Sprite für Laternen, Kristalle und Portale
-     */
     static createGlowTexture(colorHex = '#ffbe64') {
         const c = document.createElement('canvas');
         c.width = 128; c.height = 128;
@@ -166,9 +305,6 @@ class TextureFactory {
         return new THREE.CanvasTexture(c);
     }
 
-    /**
-     * Erzeugt eine Zahlen-Textur für die Trittsteine in Welt 2
-     */
     static createStoneNumberTexture(number, state = 'default') {
         const c = document.createElement('canvas');
         c.width = 256; c.height = 256;
@@ -192,18 +328,12 @@ class TextureFactory {
         return tex;
     }
 
-    /**
-     * Generiert das hochdetaillierte 600x600 Blumen-Mandala-Kunstwerk für Challenge 1.
-     * Jedes der 9 Felder ist über goldene Ranken, Farbverläufe und Blütenblätter
-     * optisch miteinander verbunden, sodass man das Bild logisch zusammensetzen kann.
-     */
     static createFlowerArtworkCanvas() {
         const c = document.createElement('canvas');
         c.width = 600;
         c.height = 600;
         const ctx = c.getContext('2d');
 
-        // 1. Warmer Sonnenuntergangs-Gartenhintergrund (Oben Koralle/Gold -> Unten Tiefblau/Violett)
         const bgGrad = ctx.createLinearGradient(0, 0, 0, 600);
         bgGrad.addColorStop(0, '#4a1942');
         bgGrad.addColorStop(0.5, '#1f2f38');
@@ -211,7 +341,6 @@ class TextureFactory {
         ctx.fillStyle = bgGrad;
         ctx.fillRect(0, 0, 600, 600);
 
-        // 2. Großer goldener Mandala-Kreis & Raute (verbindet alle 9 Kacheln miteinander!)
         ctx.strokeStyle = 'rgba(255, 202, 100, 0.55)';
         ctx.lineWidth = 8;
         ctx.beginPath();
@@ -228,7 +357,6 @@ class TextureFactory {
         ctx.closePath();
         ctx.stroke();
 
-        // 3. Geschwungene grüne Blumenstängel vom Zentrum in alle 8 äußeren Kacheln
         const positions = [
             [100, 100], [300, 100], [500, 100],
             [100, 300], [300, 300], [500, 300],
@@ -245,12 +373,10 @@ class TextureFactory {
             ctx.stroke();
         });
 
-        // 4. Hilfsfunktion zum Zeichnen einer reichhaltigen mehrschichtigen Blüte
         const drawFlower = (cx, cy, radius, petalColor1, petalColor2, centerColor, petalCount = 12) => {
             ctx.save();
             ctx.translate(cx, cy);
 
-            // Äußerer Schein
             const glow = ctx.createRadialGradient(0, 0, radius * 0.2, 0, 0, radius * 1.25);
             glow.addColorStop(0, petalColor1);
             glow.addColorStop(1, 'rgba(0,0,0,0)');
@@ -259,7 +385,6 @@ class TextureFactory {
             ctx.arc(0, 0, radius * 1.25, 0, Math.PI * 2);
             ctx.fill();
 
-            // Blütenblätter (2 Lagen)
             for (let layer = 0; layer < 2; layer++) {
                 const count = petalCount;
                 const r = layer === 0 ? radius : radius * 0.72;
@@ -277,7 +402,6 @@ class TextureFactory {
                 }
             }
 
-            // Blütenstempel
             ctx.fillStyle = centerColor;
             ctx.beginPath();
             ctx.arc(0, 0, radius * 0.26, 0, Math.PI * 2);
@@ -289,23 +413,18 @@ class TextureFactory {
             ctx.restore();
         };
 
-        // 5. Neun charakteristische Blumen für die 9 Sektoren:
-        // Obere Reihe (Abendrot, Sonnenblume, Lavendel-Stern)
         drawFlower(100, 100, 68, '#ff5252', '#ff8a80', '#ffd54f', 10);
         drawFlower(300, 100, 72, '#ffb300', '#ffe082', '#5d4037', 16);
         drawFlower(500, 100, 68, '#ab47bc', '#ea80fc', '#fff59d', 12);
 
-        // Mittlere Reihe (Türkis-Lotus, Große Gold-Rose im Zentrum, Korallen-Dahlie)
         drawFlower(100, 300, 70, '#26a69a', '#80cbc4', '#ffd54f', 12);
-        drawFlower(300, 300, 95, '#ffca28', '#ff7043', '#fff8e1', 18); // Herzstück
+        drawFlower(300, 300, 95, '#ffca28', '#ff7043', '#fff8e1', 18);
         drawFlower(500, 300, 70, '#ec407a', '#f48fb1', '#ffd54f', 12);
 
-        // Untere Reihe (Blaue Enzian-Blüte, Weiße Lilie, Magische Nacht-Orchidee)
         drawFlower(100, 500, 68, '#42a5f5', '#90caf9', '#ffe082', 10);
         drawFlower(300, 500, 72, '#ec407a', '#fff59d', '#ff6f00', 14);
         drawFlower(500, 500, 68, '#7e57c2', '#b388ff', '#ffd54f', 10);
 
-        // 6. Durchgehender goldener Zierrahmen am äußeren Rand (wichtiger Hinweis für Rand- & Eckteile!)
         ctx.strokeStyle = '#ffca64';
         ctx.lineWidth = 14;
         ctx.strokeRect(18, 18, 564, 564);
