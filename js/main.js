@@ -36,21 +36,22 @@ class AnniversaryGame {
 
     initThree() {
         this.scene = new THREE.Scene();
-        this.scene.fog = new THREE.FogExp2(0x3a1c4e, 0.012);
+        // Klarere Fernsicht für das gewaltige Bergpanorama
+        this.scene.fog = new THREE.FogExp2(0x2a143d, 0.0045);
 
-        this.camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 600);
+        this.camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 800);
 
         this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         this.renderer.outputEncoding = THREE.sRGBEncoding;
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        this.renderer.toneMappingExposure = 1.15;
+        this.renderer.toneMappingExposure = 1.18;
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.body.appendChild(this.renderer.domElement);
 
-        const hemiLight = new THREE.HemisphereLight(0xffb74d, 0x2a1442, 0.75);
+        const hemiLight = new THREE.HemisphereLight(0xffb74d, 0x2a1442, 0.78);
         this.scene.add(hemiLight);
 
         this.sunLight = new THREE.DirectionalLight(0xffdfba, 1.65);
@@ -104,7 +105,7 @@ class AnniversaryGame {
             const dx = e.clientX - this.mouse.x;
             const dy = e.clientY - this.mouse.y;
             this.cameraAngle -= dx * 0.007;
-            this.cameraPitch = Math.max(0.12, Math.min(1.05, this.cameraPitch + dy * 0.005));
+            this.cameraPitch = Math.max(0.05, Math.min(1.05, this.cameraPitch + dy * 0.005));
             this.mouse.x = e.clientX;
             this.mouse.y = e.clientY;
         });
@@ -113,7 +114,7 @@ class AnniversaryGame {
 
         window.addEventListener('wheel', e => {
             if (this.isAnyModalOpen()) return;
-            this.cameraDist = Math.max(5.5, Math.min(18, this.cameraDist + e.deltaY * 0.01));
+            this.cameraDist = Math.max(5.5, Math.min(20, this.cameraDist + e.deltaY * 0.01));
         });
 
         window.addEventListener('resize', () => {
@@ -155,7 +156,7 @@ class AnniversaryGame {
         toast.innerText = text;
         toast.classList.add('show');
         clearTimeout(this.toastTimeout);
-        this.toastTimeout = setTimeout(() => toast.classList.remove('show'), 4500);
+        this.toastTimeout = setTimeout(() => toast.classList.remove('show'), 4800);
     }
 
     triggerInteraction() {
@@ -187,36 +188,26 @@ class AnniversaryGame {
             if (!this.puzzles.puzzle3Solved) {
                 document.getElementById('quiz-modal').classList.add('active');
             } else {
-                this.showToast("Das Siegel ist bereits geöffnet! Geh zur goldenen Schatztruhe.");
+                this.worldBuilder.activateSkyVideo();
+                this.showToast("🎬 Das Himmels-Video läuft oben über den Bergen!");
             }
         } else if (item.type === 'treasure_chest') {
             if (!this.puzzles.puzzle3Solved) return;
-            this.openTreasureChestSequence();
-        }
-    }
-
-    openTreasureChestSequence() {
-        this.puzzles.chestOpened = true;
-        this.sound.chestFanfare();
-
-        let openProgress = 0;
-        const openInterval = setInterval(() => {
-            openProgress += 0.08;
-            this.worldBuilder.chestLidPivot.rotation.x = -Math.min(1.9, openProgress);
-            if (openProgress >= 1.9) {
-                clearInterval(openInterval);
-                setTimeout(() => {
-                    document.getElementById('video-modal').classList.add('active');
-                    const video = document.getElementById('reveal-video');
-                    video.play().catch(() => {});
-                }, 450);
+            // Bei Interaktion mit der Truhe wird das Himmels-Video von vorn mit Ton gestartet
+            if (this.worldBuilder.skyVideoElement) {
+                this.worldBuilder.skyVideoElement.currentTime = 0;
             }
-        }, 25);
+            this.puzzles.completeSummitFinale();
+        }
     }
 
     teleportToWorld(targetIdx) {
         this.closeAllModals();
         this.sound.teleport();
+
+        if (targetIdx !== 2) {
+            this.worldBuilder.stopSkyVideo();
+        }
 
         const fade = document.getElementById('fade-overlay');
         fade.classList.add('active');
@@ -232,12 +223,12 @@ class AnniversaryGame {
                 this.llama.pos.set(0, 0, 5.5);
                 this.puzzles.resetBridge();
             } else if (targetIdx === 2) {
-                this.llama.pos.set(0, 0, 7);
+                this.llama.pos.set(0, 0, 6.5);
             }
 
             this.llama.group.rotation.y = Math.PI;
             this.cameraAngle = 0;
-            this.cameraPitch = 0.36;
+            this.cameraPitch = targetIdx === 2 ? 0.24 : 0.36;
             this.updateHUD();
 
             setTimeout(() => fade.classList.remove('active'), 250);
@@ -252,19 +243,19 @@ class AnniversaryGame {
             document.getElementById('world-objective').innerText = cfg.hologramObjective;
         } else if (this.currentWorld === 1 && this.puzzles.puzzle2Solved) {
             document.getElementById('world-objective').innerText = cfg.flagObjective;
+        } else if (this.currentWorld === 2 && this.puzzles.puzzle3Solved) {
+            document.getElementById('world-objective').innerText = cfg.chestObjective;
         } else {
             document.getElementById('world-objective').innerText = cfg.objective;
         }
     }
 
     openChestDirectly() {
-        this.puzzles.puzzle3Solved = true;
-        this.worldBuilder.chestGroup.visible = true;
         this.teleportToWorld(2);
         setTimeout(() => {
-            this.llama.pos.set(0, 0, -9.5);
-            this.openTreasureChestSequence();
-        }, 900);
+            this.llama.pos.set(0, 0, -4.5);
+            this.puzzles.completeSummitFinale();
+        }, 850);
     }
 
     solveCurrentPuzzle() {
@@ -277,7 +268,7 @@ class AnniversaryGame {
             this.cameraPitch = 0.2;
             this.puzzles.completeBridgePuzzle();
         } else if (this.currentWorld === 2) {
-            this.openChestDirectly();
+            this.puzzles.completeSummitFinale();
         }
     }
 
@@ -342,16 +333,20 @@ class AnniversaryGame {
         const camZ = this.llama.pos.z + Math.cos(this.cameraAngle) * Math.cos(this.cameraPitch) * this.cameraDist;
         const camY = this.llama.pos.y + Math.sin(this.cameraPitch) * this.cameraDist + 1.2;
 
-        // Kamera-Blickhöhe automatisch leicht anheben, wenn Hologramm (Welt 1) oder Flagge (Welt 2) aktiv ist
+        // Kamera-Blickhöhe dynamisch anheben, damit das Himmels-Kino in Welt 3 perfekt im Bild thront
         let lookAtY = this.llama.pos.y + 1.6;
+        let lookAtZ = this.llama.pos.z;
         if (this.currentWorld === 0 && this.puzzles.puzzle1Solved) {
             lookAtY = this.llama.pos.y + 2.4;
         } else if (this.currentWorld === 1 && this.puzzles.puzzle2Solved) {
             lookAtY = this.llama.pos.y + 2.8;
+        } else if (this.currentWorld === 2 && this.puzzles.puzzle3Solved) {
+            lookAtY = this.llama.pos.y + 5.2;
+            lookAtZ = this.llama.pos.z - 6.0;
         }
 
-        this.camera.position.lerp(new THREE.Vector3(camX, camY, camZ), 0.1);
-        this.camera.lookAt(this.llama.pos.x, lookAtY, this.llama.pos.z);
+        this.camera.position.lerp(new THREE.Vector3(camX, camY, camZ), 0.08);
+        this.camera.lookAt(this.llama.pos.x, lookAtY, lookAtZ);
     }
 
     animate() {
