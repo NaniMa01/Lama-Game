@@ -155,7 +155,7 @@ class AnniversaryGame {
         toast.innerText = text;
         toast.classList.add('show');
         clearTimeout(this.toastTimeout);
-        this.toastTimeout = setTimeout(() => toast.classList.remove('show'), 4200);
+        this.toastTimeout = setTimeout(() => toast.classList.remove('show'), 4500);
     }
 
     triggerInteraction() {
@@ -163,7 +163,6 @@ class AnniversaryGame {
         const item = this.activeInteractable;
 
         if (item.type === 'flower_altar') {
-            // Wenn Rätsel 1 bereits gelöst ist und das Hologramm schwebt -> Teleport nach Welt 2!
             if (this.puzzles.puzzle1Solved) {
                 this.teleportToWorld(1);
             } else {
@@ -180,6 +179,10 @@ class AnniversaryGame {
             document.getElementById('tablet-title').innerText = data.title;
             document.getElementById('tablet-text').innerText = data.text;
             document.getElementById('tablet-modal').classList.add('active');
+        } else if (item.type === 'flagpole_w2') {
+            if (this.puzzles.puzzle2Solved) {
+                this.teleportToWorld(2);
+            }
         } else if (item.type === 'quiz_altar') {
             if (!this.puzzles.puzzle3Solved) {
                 document.getElementById('quiz-modal').classList.add('active');
@@ -226,7 +229,7 @@ class AnniversaryGame {
             if (targetIdx === 0) {
                 this.llama.pos.set(0, 0, 6);
             } else if (targetIdx === 1) {
-                this.llama.pos.set(0, 0, 5);
+                this.llama.pos.set(0, 0, 5.5);
                 this.puzzles.resetBridge();
             } else if (targetIdx === 2) {
                 this.llama.pos.set(0, 0, 7);
@@ -247,6 +250,8 @@ class AnniversaryGame {
         document.getElementById('world-title').innerText = cfg.title;
         if (this.currentWorld === 0 && this.puzzles.puzzle1Solved) {
             document.getElementById('world-objective').innerText = cfg.hologramObjective;
+        } else if (this.currentWorld === 1 && this.puzzles.puzzle2Solved) {
+            document.getElementById('world-objective').innerText = cfg.flagObjective;
         } else {
             document.getElementById('world-objective').innerText = cfg.objective;
         }
@@ -267,8 +272,10 @@ class AnniversaryGame {
             this.puzzles.completeFlowerPuzzle();
             this.puzzles.revealHologramInWorld();
         } else if (this.currentWorld === 1) {
-            this.puzzles.puzzle2Solved = true;
-            this.teleportToWorld(2);
+            this.llama.pos.set(0, 0, -18.5);
+            this.cameraAngle = 0;
+            this.cameraPitch = 0.2;
+            this.puzzles.completeBridgePuzzle();
         } else if (this.currentWorld === 2) {
             this.openChestDirectly();
         }
@@ -316,6 +323,7 @@ class AnniversaryGame {
         const list = this.worldBuilder.interactables[this.currentWorld] || [];
         for (const item of list) {
             if (item.type === 'treasure_chest' && !this.puzzles.puzzle3Solved) continue;
+            if (item.type === 'flagpole_w2' && !this.puzzles.puzzle2Solved) continue;
             if (this.llama.pos.distanceTo(item.pos) < item.radius) {
                 this.activeInteractable = item;
                 break;
@@ -334,10 +342,13 @@ class AnniversaryGame {
         const camZ = this.llama.pos.z + Math.cos(this.cameraAngle) * Math.cos(this.cameraPitch) * this.cameraDist;
         const camY = this.llama.pos.y + Math.sin(this.cameraPitch) * this.cameraDist + 1.2;
 
-        // Wenn das Hologramm in Welt 1 aktiv ist, schaut die Kamera etwas höher, damit es voll im Bild ist
-        const lookAtY = (this.currentWorld === 0 && this.puzzles.puzzle1Solved)
-            ? this.llama.pos.y + 2.4
-            : this.llama.pos.y + 1.6;
+        // Kamera-Blickhöhe automatisch leicht anheben, wenn Hologramm (Welt 1) oder Flagge (Welt 2) aktiv ist
+        let lookAtY = this.llama.pos.y + 1.6;
+        if (this.currentWorld === 0 && this.puzzles.puzzle1Solved) {
+            lookAtY = this.llama.pos.y + 2.4;
+        } else if (this.currentWorld === 1 && this.puzzles.puzzle2Solved) {
+            lookAtY = this.llama.pos.y + 2.8;
+        }
 
         this.camera.position.lerp(new THREE.Vector3(camX, camY, camZ), 0.1);
         this.camera.lookAt(this.llama.pos.x, lookAtY, this.llama.pos.z);
