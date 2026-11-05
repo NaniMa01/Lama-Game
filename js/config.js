@@ -74,16 +74,19 @@ const PERSONAL_CONFIG = {
     },
 
     // ------------------------------------------------------------------------
-    // WELT 3: DER STERNENHIMMEL-GIPFEL (Altar, Panorama & Himmels-Video)
+    // WELT 3: DER STERNENHIMMEL-GIPFEL (1. Himmels-Video -> 2. Schatztruhen-Video)
     // ------------------------------------------------------------------------
     world3: {
         badge: "Etappe 3 von 3 – Das Finale",
         title: "Welt 3: Der Sternenhimmel-Gipfel",
         objective: "Löse das Rätsel am Altar der Erinnerungen [Taste E]",
-        chestObjective: "Genieße euer Video am Sternenhimmel! [Taste E an der Truhe für Vollbild / Neustart]",
+        chestObjective: "Schau in den Himmel & öffne danach die goldene Schatztruhe auf dem Gipfel [Taste E]",
 
-        // Dein Video, das nach dem Lösen groß im Himmel über dem Bergpanorama (mit Ton!) läuft:
+        // 1. Video im Himmel (weist darauf hin, die Schatztruhe zu öffnen):
         skyVideoUrl: "lamavideo1.mp4",
+
+        // 2. Das wahre Hauptvideo, das sich beim Öffnen der Schatztruhe öffnet:
+        chestVideoUrl: "video.mp4",
 
         questions: [
             {
