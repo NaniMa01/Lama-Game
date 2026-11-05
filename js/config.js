@@ -42,10 +42,8 @@ const PERSONAL_CONFIG = {
         objective: "Lies die 4 Säulen (von links nach rechts) und überquere die 4 Stufen der Brücke",
         flagObjective: "Bewundere eure gehisste Erinnerungs-Flagge & reise am Flaggenmast weiter zum Gipfel [Taste E]",
 
-        // Bild auf der Flagge, die nach dem Überqueren am Ziel-Plateau hochfährt:
         flagImageUrl: "erinnerung2.jpg",
 
-        // 4 Reihen (Stufen) mit je 4 Zahlenplatten:
         gridNumbers: [
             [5, 8, 11, 4],     // 1. Plattform (Lösung: 8 - August)
             [9, 6, 2, 10],     // 2. Plattform (Lösung: 2 - November 1+1=2)
@@ -53,10 +51,8 @@ const PERSONAL_CONFIG = {
             [6, 9, 4, 7]       // 4. Plattform (Lösung: 7 - Don Giovanni)
         ],
 
-        // Die richtigen Zahlen für Stufe 1 bis 4:
         solutionPath: [8, 2, 3, 7],
 
-        // Die 4 Hinweis-Säulen von links nach rechts am Abgrund:
         obelisks: [
             {
                 title: "1. Säule (Ganz links – 1. Stufe)",
@@ -78,13 +74,16 @@ const PERSONAL_CONFIG = {
     },
 
     // ------------------------------------------------------------------------
-    // WELT 3: DER STERNENHIMMEL-GIPFEL (Altar der Erinnerungen & Schatztruhe)
+    // WELT 3: DER STERNENHIMMEL-GIPFEL (Altar, Panorama & Himmels-Video)
     // ------------------------------------------------------------------------
     world3: {
-        badge: "Etappe 3 von 3",
+        badge: "Etappe 3 von 3 – Das Finale",
         title: "Welt 3: Der Sternenhimmel-Gipfel",
         objective: "Löse das Rätsel am Altar der Erinnerungen [Taste E]",
-        chestObjective: "Öffne die goldene Schatztruhe in der Mitte des Gipfels [Taste E]",
+        chestObjective: "Genieße euer Video am Sternenhimmel! [Taste E an der Truhe für Vollbild / Neustart]",
+
+        // Dein Video, das nach dem Lösen groß im Himmel über dem Bergpanorama (mit Ton!) läuft:
+        skyVideoUrl: "lamavideo1.mp4",
 
         questions: [
             {
@@ -106,7 +105,7 @@ const PERSONAL_CONFIG = {
                 correctIndex: 1
             },
             {
-                question: "3. Was feiern wir am Ziel dieser magischen Reise?",
+                question: "3. Was feiern wir am Ziel dieser magischen Reise auf dem Gipfel?",
                 options: [
                     "Einen gewöhnlichen Dienstag",
                     "Unser 1-jähriges Jubiläum voller gemeinsamer Abenteuer ❤️",
