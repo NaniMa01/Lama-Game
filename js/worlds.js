@@ -1207,4 +1207,146 @@ class WorldBuilder {
 
         if (this.skyVideoElement) {
             this.skyVideoElement.muted = false;
-            this.skyVideoElement.volume = 1.
+            this.skyVideoElement.volume = 1.0;
+            const playPromise = this.skyVideoElement.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(() => {
+                    // Falls Browser beim ersten Versuch blockiert, kurz Ton-Button signalisieren
+                    console.log('Bitte einmal klicken, falls Browser Autoplay mit Ton verzögert.');
+                });
+            }
+        }
+    }
+
+    stopSkyVideo() {
+        if (this.skyVideoElement) {
+            this.skyVideoElement.pause();
+        }
+        const ctrlBar = document.getElementById('sky-video-controls');
+        if (ctrlBar) ctrlBar.style.display = 'none';
+    }
+
+    createTree(barkPBR) {
+        const tree = new THREE.Group();
+        const trunk = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.32, 0.5, 2.8, 12),
+            new THREE.MeshStandardMaterial({ map: barkPBR.map, roughness: 0.9 })
+        );
+        trunk.position.y = 1.4;
+        trunk.castShadow = true;
+        tree.add(trunk);
+
+        const crownColors = [0x2e7d32, 0x388e3c, 0x43a047];
+        crownColors.forEach((col, i) => {
+            const foliage = new THREE.Mesh(
+                new THREE.DodecahedronGeometry(1.65 - i * 0.3, 1),
+                new THREE.MeshStandardMaterial({ color: col, roughness: 0.75 })
+            );
+            foliage.position.set((i - 1) * 0.35, 3.1 + i * 0.75, 0);
+            foliage.castShadow = true;
+            tree.add(foliage);
+        });
+        return tree;
+    }
+
+    createStoneTablet(pbr) {
+        const g = new THREE.Group();
+        const slab = new THREE.Mesh(
+            new THREE.BoxGeometry(1.4, 2.2, 0.45),
+            new THREE.MeshStandardMaterial({ map: pbr.map, bumpMap: pbr.bumpMap, bumpScale: 0.08, roughness: 0.8 })
+        );
+        slab.position.y = 1.1;
+        slab.castShadow = true;
+        g.add(slab);
+
+        const runeGlow = new THREE.Sprite(new THREE.SpriteMaterial({
+            map: TextureFactory.createGlowTexture('#ffbe64'),
+            blending: THREE.AdditiveBlending
+        }));
+        runeGlow.position.set(0, 1.3, 0.3);
+        runeGlow.scale.set(1.4, 1.4, 1);
+        g.add(runeGlow);
+        return g;
+    }
+
+    updateEnvironment(time) {
+        if (this.altarGem) {
+            this.altarGem.rotation.y = time * 1.4;
+            this.altarGem.position.y = 2.55 + Math.sin(time * 2.5) * 0.15;
+        }
+
+        // Welt 1: Schwebendes 3D-Hologramm
+        if (this.hologramActive && this.hologramGroup) {
+            this.hologramScale = Math.min(1.0, this.hologramScale + 0.035);
+            this.hologramGroup.scale.setScalar(this.hologramScale);
+            this.hologramGroup.position.y = 4.9 + Math.sin(time * 2.2) * 0.18;
+            this.hologramGroup.rotation.y = Math.sin(time * 0.7) * 0.18;
+
+            if (this.hologramScanTex) {
+                this.hologramScanTex.offset.y = (time * 0.25) % 1;
+            }
+            this.hologramRings.forEach((ring, i) => {
+                ring.rotation.z = time * (i === 0 ? 1.2 : -0.9);
+            });
+        }
+
+        // Welt 2: Flaggenmast & wehende Flagge
+        if (this.flagActive && this.flagpoleRisingGroup) {
+            this.flagPoleProgress = Math.min(1.0, this.flagPoleProgress + 0.018);
+            const easeOut = 1 - Math.pow(1 - this.flagPoleProgress, 3);
+            this.flagpoleRisingGroup.position.y = -8.5 + easeOut * 8.5;
+
+            if (this.flagPoleProgress > 0.35) {
+                this.flagHoistProgress = Math.min(1.0, this.flagHoistProgress + 0.02);
+                const hoistEase = 1 - Math.pow(1 - this.flagHoistProgress, 2);
+                this.flagBannerGroup.position.y = 2.2 + hoistEase * 4.3;
+            }
+
+            if (this.flagMesh && this.flagBaseVertices) {
+                const posAttr = this.flagMesh.geometry.attributes.position;
+                const arr = posAttr.array;
+                for (let i = 0; i < arr.length; i += 3) {
+                    const bx = this.flagBaseVertices[i];
+                    const by = this.flagBaseVertices[i + 1];
+                    const distFromPole = (bx + 2.6) / 5.2;
+                    arr[i + 2] = Math.sin(bx * 1.4 - time * 3.8 + by * 0.5) * 0.22 * distFromPole;
+                }
+                posAttr.needsUpdate = true;
+            }
+        }
+
+        // Welt 3: Nebelmeer, flackernde Feuerschalen, Schneeflocken & Himmels-Kino
+        this.cloudLayers.forEach((layer, idx) => {
+            layer.rotation.y = time * (idx === 0 ? 0.025 : -0.018);
+        });
+
+        this.flameSprites.forEach(flame => {
+            const p = flame.userData.phase;
+            const s = 2.3 + Math.sin(time * 14 + p) * 0.25 + Math.cos(time * 23 + p) * 0.15;
+            flame.scale.set(s * 0.85, s * 1.15, 1);
+        });
+
+        if (this.snowParticles) {
+            this.snowParticles.rotation.y = time * 0.04;
+            const posAttr = this.snowParticles.geometry.attributes.position;
+            for (let i = 0; i < posAttr.count; i++) {
+                let y = posAttr.getY(i) - 0.025;
+                if (y < 0) y = 18;
+                posAttr.setY(i, y);
+            }
+            posAttr.needsUpdate = true;
+        }
+
+        if (this.skyCinemaActive && this.skyCinemaGroup) {
+            this.skyCinemaScale = Math.min(1.0, this.skyCinemaScale + 0.025);
+            const ease = 1 - Math.pow(1 - this.skyCinemaScale, 3);
+            this.skyCinemaGroup.scale.setScalar(ease);
+            this.skyCinemaGroup.position.y = 15.2 + Math.sin(time * 1.2) * 0.22;
+        }
+
+        this.floatingCrystals.forEach((c, idx) => {
+            c.rotation.y = time * 0.6 + idx;
+            c.position.y = 2.2 + Math.sin(time * 2 + idx) * 0.22;
+        });
+    }
+}
