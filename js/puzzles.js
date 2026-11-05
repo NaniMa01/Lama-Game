@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * PUZZLE MANAGER – BLUMEN-SCHIEBEPUZZLE, 4-STUFEN-BRÜCKE & HIMMELS-FINALE
+ * PUZZLE MANAGER – BLUMEN-SCHIEBEPUZZLE, 4-STUFEN-BRÜCKE & 2-STUFIGES FINALE
  * ============================================================================
  */
 
@@ -20,7 +20,7 @@ class PuzzleManager {
         this.puzzle2Solved = false;
         this.stepCooldown = false;
 
-        // Challenge 3: Altar-Quiz & Himmels-Video
+        // Challenge 3: Altar-Quiz, Himmels-Video & Schatztruhe
         this.puzzle3Solved = false;
         this.chestOpened = false;
 
@@ -257,7 +257,7 @@ class PuzzleManager {
     }
 
     // ------------------------------------------------------------------------
-    // CHALLENGE 3: ALTAR DER ERINNERUNGEN & HIMMELS-KINO (WELT 3)
+    // CHALLENGE 3: ALTAR DER ERINNERUNGEN -> 1. HIMMELS-VIDEO -> 2. SCHATZTRUHE
     // ------------------------------------------------------------------------
     buildQuizDOM() {
         const container = document.getElementById('quiz-questions-container');
@@ -302,7 +302,7 @@ class PuzzleManager {
         const errEl = document.getElementById('quiz-error');
         if (allCorrect) {
             errEl.innerText = "";
-            this.completeSummitFinale();
+            this.unlockSummitSkyAndChest();
         } else {
             this.game.sound.stepWrong();
             errEl.innerText = "Noch nicht alle Antworten stimmen. Überlege noch einmal!";
@@ -310,36 +310,37 @@ class PuzzleManager {
     }
 
     /**
-     * Löst das Finale auf dem Gipfel aus:
-     * Schatztruhe erscheint & öffnet sich, Kamera richtet sich auf das Panorama aus,
-     * und im Himmel startet `lamavideo1` mit Ton!
+     * STUFE 1 DES FINALES:
+     * Nach Lösen des Altars startet im Himmel `lamavideo1.mp4` (mit Ton)
+     * und die noch geschlossene Schatztruhe erscheint auf dem Podest.
      */
-    completeSummitFinale() {
+    unlockSummitSkyAndChest() {
         this.puzzle3Solved = true;
-        this.chestOpened = true;
+        this.chestOpened = false;
         this.game.closeAllModals();
-        this.game.sound.chestFanfare();
+        this.game.sound.puzzleSolved();
 
+        // Schatztruhe erscheint (Deckel bleibt noch geschlossen!)
         this.game.worldBuilder.chestGroup.visible = true;
+        if (this.game.worldBuilder.chestLidPivot) {
+            this.game.worldBuilder.chestLidPivot.rotation.x = 0;
+        }
+
+        // Interaktions-Text der Truhe auf das Öffnen des wahren Videos setzen
+        const chestItem = this.game.worldBuilder.interactables[2].find(i => i.type === 'treasure_chest');
+        if (chestItem) {
+            chestItem.label = 'Goldene Schatztruhe öffnen 🎁';
+        }
+
         document.getElementById('world-objective').innerText = PERSONAL_CONFIG.world3.chestObjective;
 
-        // Kamera in die perfekte Panorama-Position bringen
+        // Kamera so ausrichten, dass man das Himmels-Video UND die Truhe davor sieht
         this.game.cameraAngle = 0;
         this.game.cameraPitch = 0.16;
         this.game.cameraDist = 12.5;
 
-        // Truhendeckel öffnen
-        let openProgress = 0;
-        const openInterval = setInterval(() => {
-            openProgress += 0.09;
-            this.game.worldBuilder.chestLidPivot.rotation.x = -Math.min(1.9, openProgress);
-            if (openProgress >= 1.9) {
-                clearInterval(openInterval);
-            }
-        }, 25);
-
-        // Himmels-Kino im Hintergrund aktivieren und lamavideo1 mit Ton abspielen!
+        // Himmels-Video (lamavideo1) im Hintergrund mit Ton starten!
         this.game.worldBuilder.activateSkyVideo();
-        this.game.showToast("❤️ Alles Liebe zum Jubiläum! Schau hoch in den Sternenhimmel über den Bergen! ❤️");
+        this.game.showToast("✨ Schau hoch in den Himmel! Und lauf danach zur goldenen Schatztruhe [Taste E]! ✨");
     }
 }
