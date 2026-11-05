@@ -36,7 +36,6 @@ class AnniversaryGame {
 
     initThree() {
         this.scene = new THREE.Scene();
-        // Klarere Fernsicht für das gewaltige Bergpanorama
         this.scene.fog = new THREE.FogExp2(0x2a143d, 0.0045);
 
         this.camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 800);
@@ -131,6 +130,8 @@ class AnniversaryGame {
                     const url = URL.createObjectURL(file);
                     const video = document.getElementById('reveal-video');
                     video.src = url;
+                    video.muted = false;
+                    video.volume = 1.0;
                     video.play();
                 }
             });
@@ -142,6 +143,8 @@ class AnniversaryGame {
     }
 
     closeAllModals() {
+        const video = document.getElementById('reveal-video');
+        if (video) video.pause();
         document.querySelectorAll('.modal-backdrop').forEach(m => m.classList.remove('active'));
     }
 
@@ -189,16 +192,57 @@ class AnniversaryGame {
                 document.getElementById('quiz-modal').classList.add('active');
             } else {
                 this.worldBuilder.activateSkyVideo();
-                this.showToast("🎬 Das Himmels-Video läuft oben über den Bergen!");
+                this.showToast("🎬 Das Himmels-Video läuft! Lauf nun zur goldenen Schatztruhe und drücke [E]!");
             }
         } else if (item.type === 'treasure_chest') {
             if (!this.puzzles.puzzle3Solved) return;
-            // Bei Interaktion mit der Truhe wird das Himmels-Video von vorn mit Ton gestartet
-            if (this.worldBuilder.skyVideoElement) {
-                this.worldBuilder.skyVideoElement.currentTime = 0;
-            }
-            this.puzzles.completeSummitFinale();
+            this.openTreasureChestSequence();
         }
+    }
+
+    /**
+     * STUFE 2 DES FINALES:
+     * Pausiert das Himmels-Video, öffnet den Deckel der goldenen Schatztruhe
+     * und startet das wahre Hauptvideo (`video.mp4`) im Vollbild-Modal mit Ton!
+     */
+    openTreasureChestSequence() {
+        this.puzzles.chestOpened = true;
+
+        // Himmels-Video pausieren, damit sich der Ton nicht mit dem Hauptvideo überlagert
+        if (this.worldBuilder.skyVideoElement) {
+            this.worldBuilder.skyVideoElement.pause();
+            const playBtn = document.getElementById('sky-play-btn');
+            if (playBtn) playBtn.innerText = '▶ Abspielen';
+        }
+
+        this.sound.chestFanfare();
+
+        let openProgress = 0;
+        const openInterval = setInterval(() => {
+            openProgress += 0.08;
+            if (this.worldBuilder.chestLidPivot) {
+                this.worldBuilder.chestLidPivot.rotation.x = -Math.min(1.9, openProgress);
+            }
+            if (openProgress >= 1.9) {
+                clearInterval(openInterval);
+                setTimeout(() => {
+                    const modal = document.getElementById('video-modal');
+                    modal.classList.add('active');
+
+                    const video = document.getElementById('reveal-video');
+                    if (video) {
+                        const targetUrl = PERSONAL_CONFIG.world3.chestVideoUrl || 'video.mp4';
+                        if (!video.currentSrc || !video.currentSrc.includes(targetUrl)) {
+                            video.src = targetUrl;
+                        }
+                        video.muted = false;
+                        video.volume = 1.0;
+                        video.currentTime = 0;
+                        video.play().catch(() => {});
+                    }
+                }, 400);
+            }
+        }, 25);
     }
 
     teleportToWorld(targetIdx) {
@@ -253,8 +297,9 @@ class AnniversaryGame {
     openChestDirectly() {
         this.teleportToWorld(2);
         setTimeout(() => {
-            this.llama.pos.set(0, 0, -4.5);
-            this.puzzles.completeSummitFinale();
+            this.llama.pos.set(0, 0, -9.5);
+            this.puzzles.unlockSummitSkyAndChest();
+            setTimeout(() => this.openTreasureChestSequence(), 600);
         }, 850);
     }
 
@@ -268,7 +313,7 @@ class AnniversaryGame {
             this.cameraPitch = 0.2;
             this.puzzles.completeBridgePuzzle();
         } else if (this.currentWorld === 2) {
-            this.puzzles.completeSummitFinale();
+            this.puzzles.unlockSummitSkyAndChest();
         }
     }
 
@@ -333,7 +378,6 @@ class AnniversaryGame {
         const camZ = this.llama.pos.z + Math.cos(this.cameraAngle) * Math.cos(this.cameraPitch) * this.cameraDist;
         const camY = this.llama.pos.y + Math.sin(this.cameraPitch) * this.cameraDist + 1.2;
 
-        // Kamera-Blickhöhe dynamisch anheben, damit das Himmels-Kino in Welt 3 perfekt im Bild thront
         let lookAtY = this.llama.pos.y + 1.6;
         let lookAtZ = this.llama.pos.z;
         if (this.currentWorld === 0 && this.puzzles.puzzle1Solved) {
