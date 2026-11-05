@@ -15,10 +15,7 @@ const PERSONAL_CONFIG = {
         objective: "Untersuche den goldenen Blumen-Altar am Wasser [Taste E]",
         hologramObjective: "Bewundere euer Erinnerungs-Hologramm & reise am Altar weiter in Welt 2 [Taste E]",
 
-        // Das Bild für das schwebende 3D-Hologramm über dem Altar nach dem Lösen:
         hologramImageUrl: "erinnerung1.jpg",
-
-        // Optional: Eigenes Bild für die 9 Schiebekacheln selbst (leer = Blumen-Mandala):
         customFlowerImageUrl: "",
 
         revealTitle: "✨ Das Blumen-Mosaik ist vollendet! ✨",
@@ -37,31 +34,45 @@ const PERSONAL_CONFIG = {
     },
 
     // ------------------------------------------------------------------------
-    // WELT 2: DIE DÄMMERUNGS-SCHLUCHT (Der Pfad der leuchtenden Trittsteine)
+    // WELT 2: DIE DÄMMERUNGS-SCHLUCHT (4 Säulen, 4 Stufen & Erinnerungs-Flagge)
     // ------------------------------------------------------------------------
     world2: {
         badge: "Etappe 2 von 3",
         title: "Welt 2: Die Dämmerungs-Schlucht",
-        objective: "Überquere die Schlucht über die 5 Reihen der leuchtenden Trittsteine",
+        objective: "Lies die 4 Säulen (von links nach rechts) und überquere die 4 Stufen der Brücke",
+        flagObjective: "Bewundere eure gehisste Erinnerungs-Flagge & reise am Flaggenmast weiter zum Gipfel [Taste E]",
 
+        // Bild auf der Flagge, die nach dem Überqueren am Ziel-Plateau hochfährt:
+        flagImageUrl: "erinnerung2.jpg",
+
+        // 4 Reihen (Stufen) mit je 4 Zahlenplatten:
         gridNumbers: [
-            [2, 5, 8, 3],      // Reihe 1 (Start)
-            [9, 4, 7, 1],      // Reihe 2
-            [6, 12, 7, 10],    // Reihe 3
-            [14, 8, 11, 15],   // Reihe 4
-            [20, 16, 13, 18]   // Reihe 5 (Ziel)
+            [5, 8, 11, 4],     // 1. Plattform (Lösung: 8 - August)
+            [9, 6, 2, 10],     // 2. Plattform (Lösung: 2 - November 1+1=2)
+            [3, 7, 12, 1],     // 3. Plattform (Lösung: 3 - Sport & Locken)
+            [6, 9, 4, 7]       // 4. Plattform (Lösung: 7 - Don Giovanni)
         ],
 
-        solutionPath: [2, 4, 7, 11, 16],
+        // Die richtigen Zahlen für Stufe 1 bis 4:
+        solutionPath: [8, 2, 3, 7],
 
+        // Die 4 Hinweis-Säulen von links nach rechts am Abgrund:
         obelisks: [
             {
-                title: "Obelisk der Zahlenfolge",
-                text: "„Der sichere Pfad über den Abgrund beginnt in der ersten Reihe bei der Zahl 2. Mit jedem Schritt nach vorn wächst der Abstand um eins: +2, +3, +4, +5.“"
+                title: "1. Säule (Ganz links – 1. Stufe)",
+                text: "„Der Monat an dem die Katze langsamer war, als die Kraft des fliessenden Gewässers.“"
             },
             {
-                title: "Obelisk des Reisenden",
-                text: "„Reihe 1: 2  ➔  Reihe 2: 4  ➔  Reihe 3: 7  ➔  Reihe 4: 11  ➔  Reihe 5: 16. Betrittst du einen falschen Stein, trägt dich der Wind sanft an den Anfang zurück.“"
+                title: "2. Säule (Mitte links – 2. Stufe)",
+                text: "„Alleine sind sie nur Teil ihrer Anfangsbuchstaben, aber zu zweit bilden sie das Dreamteam und retten die Welt!“"
+            },
+            {
+                title: "3. Säule (Mitte rechts – 3. Stufe)",
+                text: "„Ein Sport, der nicht nur vereint, sondern die Locken auf dem Kopf in ganz neuen Farben glänzen lässt.“"
+            },
+            {
+                title: "4. Säule (Ganz rechts – 4. Stufe)",
+                text: "„Don Giovanni wäre stolz, wenn er wüsste, wie oft wir in den Genuss des kulturellen Geschehens gekommen sind! (sofern man komische rote Nasen dazu zählt)“"
             }
         ]
     },
@@ -86,11 +97,11 @@ const PERSONAL_CONFIG = {
                 correctIndex: 0
             },
             {
-                question: "2. Welche Zahlenfolge öffnete den sicheren Pfad über die Dämmerungs-Schlucht?",
+                question: "2. Welcher 4-stellige Zahlencode führte sicher über die Brücke zur Erinnerungs-Flagge?",
                 options: [
-                    "1 – 3 – 5 – 7 – 9",
-                    "2 – 4 – 7 – 11 – 16",
-                    "3 – 6 – 9 – 12 – 15"
+                    "1 – 3 – 5 – 9",
+                    "8 – 2 – 3 – 7",
+                    "4 – 6 – 8 – 10"
                 ],
                 correctIndex: 1
             },
