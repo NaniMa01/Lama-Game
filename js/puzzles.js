@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * PUZZLE MANAGER – BLUMEN-SCHIEBEPUZZLE, TRITTSTEINE & ALTAR-QUIZ
+ * PUZZLE MANAGER – BLUMEN-SCHIEBEPUZZLE, 4-STUFEN-BRÜCKE & ALTAR-QUIZ
  * ============================================================================
  */
 
@@ -8,14 +8,14 @@ class PuzzleManager {
     constructor(game) {
         this.game = game;
 
-        // Challenge 1: Blumen-Schiebepuzzle (3x3)
+        // Challenge 1: Blumen-Schiebepuzzle
         this.flowerState = [0, 1, 2, 3, 4, 5, 6, 7, null];
         this.flowerMoves = 0;
-        this.showFlowerNumbers = false; // Erwachsenen-Schwierigkeit: Standardmäßig AUS
+        this.showFlowerNumbers = false;
         this.puzzle1Solved = false;
         this.tileDataUrls = [];
 
-        // Challenge 2: Trittsteine
+        // Challenge 2: 4-stufige Trittstein-Brücke (8 -> 2 -> 3 -> 7)
         this.currentBridgeRow = 0;
         this.puzzle2Solved = false;
         this.stepCooldown = false;
@@ -28,10 +28,6 @@ class PuzzleManager {
         this.buildQuizDOM();
     }
 
-    /**
-     * Schneidet entweder das prozedurale Blumen-Kunstwerk oder das eigene Bild
-     * aus PERSONAL_CONFIG.world1.customFlowerImageUrl in 9 exakt passende Kacheln.
-     */
     prepareFlowerTiles() {
         const customUrl = PERSONAL_CONFIG.world1.customFlowerImageUrl;
         if (customUrl && customUrl.trim() !== "") {
@@ -40,8 +36,7 @@ class PuzzleManager {
             img.onload = () => {
                 const c = document.createElement('canvas');
                 c.width = 600; c.height = 600;
-                const ctx = c.getContext('2d');
-                ctx.drawImage(img, 0, 0, 600, 600);
+                c.getContext('2d').drawImage(img, 0, 0, 600, 600);
                 this.sliceCanvasInto9Tiles(c);
             };
             img.onerror = () => {
@@ -72,9 +67,6 @@ class PuzzleManager {
         this.shuffleFlowerPuzzle(false);
     }
 
-    /**
-     * Garantiert lösbares Mischen auf mittlerer Erwachsenen-Schwierigkeit (22 echte Züge)
-     */
     shuffleFlowerPuzzle(playSound = true) {
         if (this.puzzle1Solved) return;
         this.flowerState = [0, 1, 2, 3, 4, 5, 6, 7, null];
@@ -120,8 +112,6 @@ class PuzzleManager {
 
         this.flowerState.forEach((tileId, posIdx) => {
             const cell = document.createElement('div');
-
-            // Wenn gelöst, wird auch das 9. Teil (Index 8) angezeigt, damit das Bild komplett ist!
             const effectiveTileId = (this.puzzle1Solved && tileId === null) ? 8 : tileId;
 
             if (effectiveTileId === null) {
@@ -165,23 +155,21 @@ class PuzzleManager {
         }
     }
 
-   completeFlowerPuzzle() {
+    completeFlowerPuzzle() {
         this.puzzle1Solved = true;
         this.flowerState = [0, 1, 2, 3, 4, 5, 6, 7, 8];
         this.game.sound.puzzleSolved();
         this.renderFlowerGrid();
 
-        // Schwebendes 3D-Hologramm über dem Altar in Welt 1 aktivieren!
         if (this.game.worldBuilder.activateHologram) {
             this.game.worldBuilder.activateHologram();
         }
 
-        // Interaktions-Label am Altar auf Teleport umschalten
         const altarItem = this.game.worldBuilder.interactables[0].find(i => i.type === 'flower_altar');
         if (altarItem) {
             altarItem.label = 'In die 2. Welt (Dämmerungs-Schlucht) teleportieren ➔';
         }
-        document.getElementById('world-objective').innerText = PERSONAL_CONFIG.world1.hologramObjective || PERSONAL_CONFIG.world1.objective;
+        document.getElementById('world-objective').innerText = PERSONAL_CONFIG.world1.hologramObjective;
 
         document.getElementById('flower-reveal-title').innerText = PERSONAL_CONFIG.world1.revealTitle;
         document.getElementById('flower-reveal-caption').innerText = PERSONAL_CONFIG.world1.revealCaption;
@@ -189,9 +177,6 @@ class PuzzleManager {
         document.getElementById('flower-modal-footer').style.display = 'none';
     }
 
-    /**
-     * DIESE FUNKTION HAT IN DEINER PUZZLES.JS GEFEHLT:
-     */
     revealHologramInWorld() {
         this.game.closeAllModals();
         this.game.cameraAngle = 0;
@@ -199,11 +184,13 @@ class PuzzleManager {
         this.game.cameraDist = 11.5;
         this.game.showToast("✨ Euer Erinnerungs-Hologramm schwebt über dem Altar! Drücke [E] am Altar für Level 2 ✨");
     }
+
     // ------------------------------------------------------------------------
-    // CHALLENGE 2: TRITTSTEIN-BRÜCKE IN WELT 2
+    // CHALLENGE 2: 4-STUFIGE TRITTSTEIN-BRÜCKE & FLAGGENMAST
     // ------------------------------------------------------------------------
     checkSteppingStones(playerPos) {
         if (this.puzzle2Solved || this.stepCooldown) return;
+        const totalSteps = PERSONAL_CONFIG.world2.solutionPath.length; // 4 Stufen
 
         for (const stone of this.game.worldBuilder.steppingStones) {
             const dx = Math.abs(playerPos.x - stone.position.x);
@@ -219,32 +206,51 @@ class PuzzleManager {
                     this.game.sound.stepCorrect(row);
                     this.currentBridgeRow++;
 
-                    if (this.currentBridgeRow >= 5) {
-                        this.puzzle2Solved = true;
-                        this.game.showToast("✨ Der Pfad der Schlucht ist gemeistert! Teleportiere zum Gipfel... ✨");
-                        this.game.sound.puzzleSolved();
-                        setTimeout(() => this.game.teleportToWorld(2), 1300);
+                    if (this.currentBridgeRow >= totalSteps) {
+                        this.completeBridgePuzzle();
                     }
                 } else if (row >= this.currentBridgeRow && number !== expectedNumber) {
                     this.stepCooldown = true;
                     topMat.map = TextureFactory.createStoneNumberTexture(number, 'wrong');
                     topMat.needsUpdate = true;
                     this.game.sound.stepWrong();
-                    this.game.showToast("Falscher Trittstein! Schau dir die Obelisken am Start noch einmal an.");
+                    this.game.showToast(`Falscher Stein! Lies Säule ${this.currentBridgeRow + 1} am Start noch einmal.`);
 
                     setTimeout(() => {
                         this.resetBridge();
-                        this.game.llama.pos.set(0, 0, 2);
+                        this.game.llama.pos.set(0, 0, 3.5);
                         this.stepCooldown = false;
-                    }, 700);
+                    }, 750);
                 }
                 break;
             }
         }
     }
 
+    completeBridgePuzzle() {
+        this.puzzle2Solved = true;
+        this.currentBridgeRow = PERSONAL_CONFIG.world2.solutionPath.length;
+
+        // Alle richtigen Steine grün leuchten lassen
+        this.game.worldBuilder.steppingStones.forEach(stone => {
+            const { row, number, topMat } = stone.userData;
+            if (PERSONAL_CONFIG.world2.solutionPath[row] === number) {
+                topMat.map = TextureFactory.createStoneNumberTexture(number, 'active');
+                topMat.needsUpdate = true;
+            }
+        });
+
+        // Flaggenmast auf dem Ziel-Plateau hochfahren lassen!
+        this.game.worldBuilder.activateFlag();
+        this.game.sound.chestFanfare();
+        document.getElementById('world-objective').innerText = PERSONAL_CONFIG.world2.flagObjective;
+        this.game.showToast("🚩 Alle 4 Stufen gemeistert! Am Ziel-Plateau fährt eure Erinnerungs-Flagge hoch! Drücke dort [E] für Welt 3.");
+    }
+
     resetBridge() {
         this.currentBridgeRow = 0;
+        this.puzzle2Solved = false;
+        this.game.worldBuilder.resetFlag();
         this.game.worldBuilder.steppingStones.forEach(stone => {
             const { number, topMat } = stone.userData;
             topMat.map = TextureFactory.createStoneNumberTexture(number, 'default');
