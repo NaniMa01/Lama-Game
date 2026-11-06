@@ -1,147 +1,136 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Die Reise des kleinen Lamas – Jubiläumsspiel</title>
-    <link rel="stylesheet" href="css/style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Die Reise des kleinen Lamas – Jubiläumsspiel</title>
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-    <!-- Ladebildschirm -->
-    <div id="loader">
-        <div class="spinner"></div>
-        <h2>Die Reise des kleinen Lamas</h2>
-        <p id="loader-status">Generiere prozedurale PBR-Texturen & Blumen-Mandala...</p>
-    </div>
+<div id="loader">
+<div class="spinner"></div>
+<h2>Die Reise des kleinen Lamas</h2>
+<p id="loader-status">Generiere prozedurale PBR-Texturen & Blumen-Mandala...</p>
+</div>
 
-    <!-- Teleport-Blendeffekt -->
-    <div id="fade-overlay"></div>
+<div id="fade-overlay"></div>
 
-    <!-- HUD (Oben links) -->
-    <div id="hud">
-        <span id="world-badge" class="badge">Etappe 1 von 3</span>
-        <h1 id="world-title">Welt 1: Die schwebende Wiesen-Oase</h1>
-        <p id="world-objective">Untersuche den goldenen Blumen-Altar am Wasser [Taste E]</p>
-        <div class="controls-hint">
-            <span><b>W A S D</b> Bewegen</span>
-            <span><b>SPACE</b> Hüpfen</span>
-            <span><b>E</b> Interagieren</span>
-            <span><b>Maus ziehen / Scroll</b> Kamera</span>
-        </div>
-    </div>
+<div id="hud">
+<span id="world-badge" class="badge">Etappe 1 von 3</span>
+<h1 id="world-title">Welt 1: Die schwebende Wiesen-Oase</h1>
+<p id="world-objective">Untersuche den goldenen Blumen-Altar am Wasser [Taste E]</p>
+<div class="controls-hint">
+<span><b>W A S D</b> Bewegen</span>
+<span><b>SPACE</b> Hüpfen</span>
+<span><b>E</b> Interagieren</span>
+<span><b>Maus ziehen / Scroll</b> Kamera</span>
+</div>
+</div>
 
-    <!-- Entwickler- & Schnellreise-Panel (Oben rechts) -->
-    <div class="dev-panel">
-        <h3>Schnellwahl & Test (Taste H)</h3>
-        <div class="dev-btns">
-            <button class="dev-btn" onclick="game.teleportToWorld(0)">W1: Oase</button>
-            <button class="dev-btn" onclick="game.teleportToWorld(1)">W2: Schlucht</button>
-            <button class="dev-btn" onclick="game.teleportToWorld(2)">W3: Gipfel</button>
-            <button class="dev-btn" onclick="game.openChestDirectly()">🎁 Truhe</button>
-            <button class="dev-btn accent" onclick="game.solveCurrentPuzzle()">✓ Rätsel lösen</button>
-        </div>
-    </div>
+<div class="dev-panel">
+<h3>Schnellwahl & Test (Taste H)</h3>
+<div class="dev-btns">
+<button class="dev-btn" onclick="game.teleportToWorld(0)">W1: Oase</button>
+<button class="dev-btn" onclick="game.teleportToWorld(1)">W2: Schlucht</button>
+<button class="dev-btn" onclick="game.teleportToWorld(2)">W3: Gipfel</button>
+<button class="dev-btn" onclick="game.openChestDirectly()">🎁 Truhe</button>
+<button class="dev-btn accent" onclick="game.solveCurrentPuzzle()">✓ Rätsel lösen</button>
+</div>
+</div>
 
-    <!-- Toast-Nachricht -->
-    <div id="toast-message"></div>
+<div id="toast-message"></div>
 
-    <!-- Interaktions-Prompt [Drücke E] -->
-    <div id="interaction-prompt">
-        <span class="key-badge" id="prompt-key">E</span>
-        <span id="prompt-text">Interagieren</span>
-    </div>
+<div id="interaction-prompt">
+<span class="key-badge" id="prompt-key">E</span>
+<span id="prompt-text">Interagieren</span>
+</div>
 
-    <!-- MODAL 1: Steintafeln & Hinweis-Obelisken -->
-    <div id="tablet-modal" class="modal-backdrop">
-        <div class="modal-card tablet-card">
-            <h2 id="tablet-title">Alte Inschrift</h2>
-            <p id="tablet-text"></p>
-            <button class="btn-primary" onclick="game.closeAllModals()">Verstanden</button>
-        </div>
-    </div>
+<!-- MODAL 1: Steintafeln & Hinweis-Säulen -->
+<div id="tablet-modal" class="modal-backdrop">
+<div class="modal-card tablet-card">
+<h2 id="tablet-title">Alte Inschrift</h2>
+<p id="tablet-text"></p>
+<button class="btn-primary" onclick="game.closeAllModals()">Verstanden</button>
+</div>
+</div>
 
-    <!-- MODAL 2: Challenge 1 – Das Blumen-Schiebepuzzle -->
-    <div id="flower-puzzle-modal" class="modal-backdrop">
-        <div class="modal-card flower-card">
-            <div class="modal-header">
-                <h2>Das Blumen-Mosaik der Erinnerung</h2>
-                <p id="flower-puzzle-subtitle">Ordne die botanischen Kacheln über ihre Blütenblätter, Stängel und den Goldrahmen so an, dass das vollständige Bild entsteht.</p>
-            </div>
+<!-- MODAL 2: Challenge 1 – Das Blumen-Schiebepuzzle -->
+<div id="flower-puzzle-modal" class="modal-backdrop">
+<div class="modal-card flower-card">
+<div class="modal-header">
+<h2>Das Blumen-Mosaik der Erinnerung</h2>
+<p id="flower-puzzle-subtitle">Ordne die botanischen Kacheln über ihre Blütenblätter, Stängel und den Goldrahmen so an, dass das vollständige Bild entsteht.</p>
+</div>
+<div class="puzzle-toolbar">
+<span id="move-counter">Züge: 0</span>
+<div class="toolbar-actions">
+<button id="toggle-numbers-btn" class="btn-small" onclick="game.puzzles.toggleFlowerNumbers()">🔢 Zahlen-Hilfe: AUS</button>
+<button class="btn-small" onclick="game.puzzles.shuffleFlowerPuzzle()">↻ Neu mischen</button>
+</div>
+</div>
+<div id="slider-grid" class="slider-grid"></div>
+<div id="flower-reveal-banner" class="reveal-banner hidden">
+<h3 id="flower-reveal-title">✨ Das Blumen-Siegel ist gelöst! ✨</h3>
+<p id="flower-reveal-caption"></p>
+<button id="flower-next-world-btn" class="btn-gold" onclick="game.puzzles.revealHologramInWorld()">✨ Hologramm in der Welt betrachten ✨</button>
+</div>
+<div class="modal-footer" id="flower-modal-footer">
+<button class="btn-secondary" onclick="game.closeAllModals()">Später weiterpuzzeln</button>
+</div>
+</div>
+</div>
 
-            <div class="puzzle-toolbar">
-                <span id="move-counter">Züge: 0</span>
-                <div class="toolbar-actions">
-                    <button id="toggle-numbers-btn" class="btn-small" onclick="game.puzzles.toggleFlowerNumbers()">🔢 Zahlen-Hilfe: AUS</button>
-                    <button class="btn-small" onclick="game.puzzles.shuffleFlowerPuzzle()">↻ Neu mischen</button>
-                </div>
-            </div>
+<!-- MODAL 3: Challenge 3 – Altar der Erinnerungen -->
+<div id="quiz-modal" class="modal-backdrop">
+<div class="modal-card quiz-card">
+<h2>Der Altar der Erinnerungen</h2>
+<p class="subtitle">Beantworte die drei Fragen unserer Reise, um die goldene Schatztruhe zu beschwören.</p>
+<div id="quiz-questions-container"></div>
+<p id="quiz-error" class="error-msg"></p>
+<div class="modal-actions">
+<button class="btn-secondary" onclick="game.closeAllModals()">Abbrechen</button>
+<button class="btn-gold" onclick="game.puzzles.submitQuiz()">Siegel öffnen ✨</button>
+</div>
+</div>
+</div>
 
-            <!-- 3x3 Schiebepuzzle-Raster -->
-            <div id="slider-grid" class="slider-grid"></div>
+<!-- MODAL 4: Das Finale – Schatztruhe & YouTube-Video-Player -->
+<div id="video-modal" class="modal-backdrop">
+<div class="video-modal-content">
+<div class="video-header">
+<h2>❤️ Alles Liebe zum 1. Jubiläum! ❤️</h2>
+<button class="close-video-btn" onclick="game.closeVideoModal()">×</button>
+</div>
+<div class="video-wrapper">
+<iframe
+    id="youtube-chest-iframe"
+    width="100%"
+    height="100%"
+    src=""
+    title="Jubiläumsvideo"
+    frameborder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+    referrerpolicy="strict-origin-when-cross-origin"
+    allowfullscreen>
+</iframe>
+</div>
+<div class="video-fallback-bar">
+<span>Falls dein Browser das eingebettete Video blockiert, kannst du es hier direkt öffnen:</span>
+<a id="youtube-direct-link" href="https://youtu.be/TRzQ2TPNZDU" target="_blank" rel="noopener noreferrer" class="btn-gold" style="text-decoration:none; padding:6px 16px; font-size:13px;">
+🎬 Direkt auf YouTube öffnen
+</a>
+</div>
+</div>
+</div>
 
-            <!-- Erscheint, sobald das Bild vollständig zusammengesetzt ist -->
-            <div id="flower-reveal-banner" class="reveal-banner hidden">
-                <h3 id="flower-reveal-title">✨ Das Blumen-Siegel ist gelöst! ✨</h3>
-                <p id="flower-reveal-caption"></p>
-                <button id="flower-next-world-btn" class="btn-gold" onclick="game.puzzles.revealHologramInWorld()">
-                    ✨ Hologramm in der Welt betrachten ✨
-                </button>
-            </div>
-
-            <div class="modal-footer" id="flower-modal-footer">
-                <button class="btn-secondary" onclick="game.closeAllModals()">Später weiterpuzzeln</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL 3: Challenge 3 – Altar der Erinnerungen -->
-    <div id="quiz-modal" class="modal-backdrop">
-        <div class="modal-card quiz-card">
-            <h2>Der Altar der Erinnerungen</h2>
-            <p class="subtitle">Beantworte die drei Fragen unserer Reise, um die goldene Schatztruhe zu beschwören.</p>
-            <div id="quiz-questions-container"></div>
-            <p id="quiz-error" class="error-msg"></p>
-            <div class="modal-actions">
-                <button class="btn-secondary" onclick="game.closeAllModals()">Abbrechen</button>
-                <button class="btn-gold" onclick="game.puzzles.submitQuiz()">Siegel öffnen ✨</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL 4: Das Finale – Schatztruhe & Video-Player -->
-    <div id="video-modal" class="modal-backdrop">
-        <div class="video-modal-content">
-            <div class="video-header">
-                <h2>❤️ Alles Liebe zum 1. Jubiläum! ❤️</h2>
-                <button class="close-video-btn" onclick="game.closeVideoModal()">×</button>
-            </div>
-            <div class="video-wrapper">
-                <video id="reveal-video" controls playsinline>
-                    <source src="lamavideo1.mp4" type="video/mp4">
-                    Dein Browser unterstützt leider kein HTML5-Video.
-                </video>
-            </div>
-            <div class="video-fallback-bar">
-                <span>Falls <code>video.mp4</code> noch nicht im Ordner liegt, kannst du hier direkt eine Videodatei auswählen:</span>
-                <label class="btn-small file-label">
-                    📂 Videodatei laden
-                    <input type="file" id="local-video-input" accept="video/*" style="display:none;">
-                </label>
-            </div>
-        </div>
-    </div>
-
-    <!-- Three.js CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
-    <!-- Modulare Spiel-Skripte -->
-    <script src="js/config.js"></script>
-    <script src="js/audio.js"></script>
-    <script src="js/textures.js"></script>
-    <script src="js/player.js"></script>
-    <script src="js/worlds.js"></script>
-    <script src="js/puzzles.js"></script>
-    <script src="js/main.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/textures.js"></script>
+<script src="js/player.js"></script>
+<script src="js/worlds.js"></script>
+<script src="js/puzzles.js"></script>
+<script src="js/main.js"></script>
 </body>
 </html>
