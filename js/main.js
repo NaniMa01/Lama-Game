@@ -121,21 +121,6 @@ class AnniversaryGame {
             this.camera.updateProjectionMatrix();
             this.renderer.setSize(window.innerWidth, window.innerHeight);
         });
-
-        const videoInput = document.getElementById('local-video-input');
-        if (videoInput) {
-            videoInput.addEventListener('change', e => {
-                const file = e.target.files[0];
-                if (file) {
-                    const url = URL.createObjectURL(file);
-                    const video = document.getElementById('reveal-video');
-                    video.src = url;
-                    video.muted = false;
-                    video.volume = 1.0;
-                    video.play();
-                }
-            });
-        }
     }
 
     isAnyModalOpen() {
@@ -143,15 +128,20 @@ class AnniversaryGame {
     }
 
     closeAllModals() {
-        const video = document.getElementById('reveal-video');
-        if (video) video.pause();
+        this.stopYoutubeModal();
         document.querySelectorAll('.modal-backdrop').forEach(m => m.classList.remove('active'));
     }
 
     closeVideoModal() {
-        const video = document.getElementById('reveal-video');
-        if (video) video.pause();
+        this.stopYoutubeModal();
         document.getElementById('video-modal').classList.remove('active');
+    }
+
+    stopYoutubeModal() {
+        const ytIframe = document.getElementById('youtube-chest-iframe');
+        if (ytIframe) {
+            ytIframe.src = '';
+        }
     }
 
     showToast(text) {
@@ -203,12 +193,12 @@ class AnniversaryGame {
     /**
      * STUFE 2 DES FINALES:
      * Pausiert das Himmels-Video, öffnet den Deckel der goldenen Schatztruhe
-     * und startet das wahre Hauptvideo (`video.mp4`) im Vollbild-Modal mit Ton!
+     * und lädt das YouTube-Jubiläumsvideo (`https://youtu.be/TRzQ2TPNZDU`) mit Autoplay!
      */
     openTreasureChestSequence() {
         this.puzzles.chestOpened = true;
 
-        // Himmels-Video pausieren, damit sich der Ton nicht mit dem Hauptvideo überlagert
+        // Himmels-Video im Hintergrund pausieren, damit sich der Ton nicht überlagert
         if (this.worldBuilder.skyVideoElement) {
             this.worldBuilder.skyVideoElement.pause();
             const playBtn = document.getElementById('sky-play-btn');
@@ -226,20 +216,17 @@ class AnniversaryGame {
             if (openProgress >= 1.9) {
                 clearInterval(openInterval);
                 setTimeout(() => {
-                    const modal = document.getElementById('video-modal');
-                    modal.classList.add('active');
-
-                    const video = document.getElementById('reveal-video');
-                    if (video) {
-                        const targetUrl = PERSONAL_CONFIG.world3.chestVideoUrl || 'video.mp4';
-                        if (!video.currentSrc || !video.currentSrc.includes(targetUrl)) {
-                            video.src = targetUrl;
-                        }
-                        video.muted = false;
-                        video.volume = 1.0;
-                        video.currentTime = 0;
-                        video.play().catch(() => {});
+                    const ytId = PERSONAL_CONFIG.world3.chestYoutubeId || 'TRzQ2TPNZDU';
+                    const ytIframe = document.getElementById('youtube-chest-iframe');
+                    if (ytIframe) {
+                        ytIframe.src = `https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0&modestbranding=1`;
                     }
+                    const directLink = document.getElementById('youtube-direct-link');
+                    if (directLink && PERSONAL_CONFIG.world3.chestYoutubeUrl) {
+                        directLink.href = PERSONAL_CONFIG.world3.chestYoutubeUrl;
+                    }
+
+                    document.getElementById('video-modal').classList.add('active');
                 }, 400);
             }
         }, 25);
