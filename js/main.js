@@ -193,7 +193,7 @@ class AnniversaryGame {
     /**
      * STUFE 2 DES FINALES:
      * Pausiert das Himmels-Video, öffnet den Deckel der goldenen Schatztruhe
-     * und lädt das YouTube-Jubiläumsvideo (`https://youtu.be/TRzQ2TPNZDU`) mit Autoplay!
+     * und lädt das YouTube-Jubiläumsvideo (`https://youtu.be/z7_dr7ZGBiY`) mit Autoplay!
      */
     openTreasureChestSequence() {
         this.puzzles.chestOpened = true;
@@ -216,7 +216,7 @@ class AnniversaryGame {
             if (openProgress >= 1.9) {
                 clearInterval(openInterval);
                 setTimeout(() => {
-                    const ytId = PERSONAL_CONFIG.world3.chestYoutubeId || 'TRzQ2TPNZDU';
+                    const ytId = PERSONAL_CONFIG.world3.chestYoutubeId || 'z7_dr7ZGBiY';
                     const ytIframe = document.getElementById('youtube-chest-iframe');
                     if (ytIframe) {
                         ytIframe.src = `https://www.youtube.com/embed/${ytId}?autoplay=1&rel=0&modestbranding=1`;
