@@ -85,9 +85,9 @@ const PERSONAL_CONFIG = {
         // 1. Kurzes Hinweis-Video im Himmel über den Bergen (lokale Datei unter 25 MB):
         skyVideoUrl: "lamavideo1.mp4",
 
-        // 2. Dein großes Jubiläumsvideo in der Schatztruhe via YouTube:
-        chestYoutubeId: "TRzQ2TPNZDU",
-        chestYoutubeUrl: "https://youtu.be/TRzQ2TPNZDU",
+        // 2. Dein neues Jubiläumsvideo in der Schatztruhe via YouTube:
+        chestYoutubeId: "z7_dr7ZGBiY",
+        chestYoutubeUrl: "https://youtu.be/z7_dr7ZGBiY",
 
         questions: [
             {
